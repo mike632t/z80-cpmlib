@@ -1,0 +1,70 @@
+		TITLE   SQRT - 25 Dec 20 - MT
+		SUBTTL	'Display integer square roots'
+;
+		INCLUDE SYMBOLS
+		VERSION	'SQRT 3.1 - 27 Dec 20'
+;
+		USING	SQRTI
+		USING	PUTS, PUTC, PUTI,
+		USING	INITF, OPENF, CLOSEF, WRITEF, BDOS
+;
+;-- Displays a table of 360 random numbers to the VDU and outputs them to a
+;   file  if  one is specified on the command line.  No attempt is made  to
+;   generate a new seed value time so number sequence is same every time.
+;
+;   This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;-- This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+;** 25 Dec 20         - Initial version - MEJT
+;
+;** 25 Dec 20         - Removed text messages (just prints values) - MEJT
+;
+SQRT::		PROGRAM  Output
+		LD	HL, TRUE	; Set flag in PUTI to Display leading zeros.
+		LD	(PUTI## -2), HL
+;
+		LD	HL,0		; Get value in HL..
+		PUSH	HL		; Save value on stack.
+		LD      C,18		; Number of lines to print.
+Line:		LD      B,8		; Number of columns.
+Column:		POP	HL
+                INC	HL		
+                PUSH	HL		; Save new value on stack.
+		CALL    SQRTI##		; Returns new random number in HL.
+		JR	NZ, Column	; 
+		EX	(SP),HL		; Swap the current value with the result.
+                EX	DE,HL		; Put value in DE
+                LD	HL,Output 	; and print it.
+                CALL	PUTI##
+                EX	DE,HL		; Put value back in HL, swap it 
+                EX	(SP),HL		; the result and
+                PUSH	HL		; save it on the stack!
+                LD	HL,Output 	; Print the result.
+                LD	DE,' '
+                CALL	PUTC##
+                LD	DE,':'
+                CALL	PUTC##
+                POP	DE		; Get the result 
+                CALL	PUTI##		; and print it.
+_Skip:		DEC     B
+                JR      NZ,Column
+                LD	DE,Asc$CR	; Print CR/LF.
+                CALL	PUTC##
+                LD	DE,Asc$LF
+                CALL	PUTC##
+                DEC     C
+                JR      NZ,Line
+                POP	DE		; Pull value off the stack.
+                RET
+;
+                END     SQRT

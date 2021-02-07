@@ -1,0 +1,272 @@
+		TITLE   LIST - 23 Mar 90 - MT
+		SUBTTL	'Linked lists'
+;
+		INCLUDE SYMBOLS
+		VERSION	'LIST 4.0 - 20 Dec 20'
+;
+		USING	PUTS, PUTC, PUTI
+		USING	INITF, OPENF, CLOSEF, WRITEF, BDOS, ALLOC
+;
+;-- Written  to  demonstrate the use of alloc() to create  a  dynamic  data
+;   structure.  Constructs a linked list by adding items to the front of  a
+;   list allocating storage space from the heap, then prints to contents of
+;   the list.
+;
+;-- This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+;-- Note - Alloc MUST be the last external routine in the list (as the heap
+;          is allocated upwards from the last memory address it uses).
+;
+;** 23 Mar 90   3.0   - Rewritten to use external library routines - MT
+;
+;** 24 Mar 90   3.1   - Added print() to display the list elements - MT
+;
+;** 25 Mar 90   3.2   - New  items can now be inserted at the start of  the
+;                       list using prepend()- MT
+;
+;** 26 Oct 92   3.3   - Modified to use call by referance. (I don't  belive
+;                       that  this change has actually taken over two years
+;                       to implement!!) - MT
+;
+;** 31 Oct 92   3.4   - Passes  the address of the heap as a parameter when
+;                       adding items to the list - MT
+;
+;**  1 Nov 92   3.5   - Changed  items  to  strings and updated  the  print
+;                       the list elements in order - MT
+;
+;**  8 Nov 92   3.6   - Updated to use program macro to define files - MT
+;                     - Start of heap now defiend in alloc() - MT
+;
+;** 20 Dec 20	4.0   - Tidied  up  the  code  to use  the  current  symbol
+;                       definitions and updated the formatting - MT
+;                     - Added Lynne !! - MT
+;
+;** 21 Dec 20         - Changed the order of the parameters to the  print()
+;                       routine  (so  the order matches all the  other  I/O
+;                       routines) - MT
+;
+;                     - Added  append()  to allow new items to be added  to
+;                       the  a  end of the list by finding the end  of  the
+;                       and  then  using prepend() to insert the  new  item
+;                       into the list - MT
+;
+;-- To Do	      - Read data from a file..
+;                     - Implement _insert() to insert in order.
+;
+;--- Data items for linked list and pointer to list.
+;
+Data:
+Beth:		DEFB	12,00,'Beth WHITE',Asc$CR,Asc$LF
+Heather:	DEFB	16,00,'Heather PARKER',Asc$CR,Asc$LF
+Jennifer:	DEFB	20,00,'Jennifer Anne BRAY',Asc$CR,Asc$LF
+Rebecca:	DEFB	17,00,'Rebecca SELLERS',Asc$CR,Asc$LF
+Jane:		DEFB	23,00,'Jane Elizabeth MORLEY',Asc$CR,Asc$LF
+Sarah:		DEFB	13,00,'Sarah PRICE',Asc$CR,Asc$LF
+Lucy:		DEFB	20,00,'Lucy Jane BECKWITH',Asc$CR,Asc$LF
+Lynne:		DEFB	24,00,'Lynne Erica WOOLTERTON',Asc$CR,Asc$LF
+;
+Linked_List:	DEFW	Null		; Null pointer indecates end of list.
+;
+;
+LIST::		PROGRAM	Output
+;
+;--- Builds  a new linked list by alternatly appending or  prepending  each
+;    elements to the list.
+;
+		LD	HL,Linked_List	; Pointer to linked list.
+		LD	DE,Rebecca	; Get pointer to new item.
+		CALL	_Append		; Add item to the end of the list
+		LD	DE,Jennifer
+		CALL	_Prepend	; Add next item to the start of the list
+		LD	DE,Jane
+		CALL	_Append		; Add next item to the end of the list
+		LD	DE,Heather
+		CALL	_Prepend	; Add next item to the start of the list
+		LD	DE,Lucy
+		CALL	_Append		; Add next item to the end of the list
+		LD	DE,Beth
+		CALL	_Prepend	; Add next item to the start of the list
+		LD	DE,Lynne
+		CALL	_Append		; Add next item to the end of the list
+		EX	DE,HL		; Save pointer to linked list in DE
+		LD	HL,Output
+		CALL	_Print		; Print linked list
+		RET			; Return to CP/M and sanity !
+;
+;
+		SUBTTL	_print()
+		PAGE
+;
+;-- print(ref file, ref ref list)
+;
+;   Prints all the items in the linked list in order.  
+;
+;   Returns zero if successful, or non zero if there is an error.
+;
+_Print:		PROCEDURE	
+		PUSH	HL		; Find the address of the next data item in the list.
+		EX	DE,HL
+		LD	E,(HL)
+		INC	HL
+		LD	D,(HL)
+		LD	A,E		; Check for the end of the list.
+		OR	D
+		POP	HL		; Restore pointer to output file stream
+		RET	Z		; and give up if there are no more items in the list,
+		PUSH	DE		; otherwise save the pointer to the next node
+		INC	DE		; and increment it to point to the data.
+		INC	DE
+		CALL	PUTS##
+		POP	DE		; Restore pointer to next item.
+		RET	NZ		; Give up if there was an error or 
+		CALL	_Print		; recursivly print the next item in the list.
+		RET
+;
+;
+		SUBTTL	_prepend()
+		PAGE
+;
+;-- prepend(ref ref list, ref array [] of char)
+;
+;   Adds the next string to the front of the linked list. A ref ref list is
+;   used as the parameter instead of a ref list since this is how the items
+;   are  actualy held in the list, so this procedure can therefore also  be
+;   used to insert items into the list.
+;
+;	+---+	  +---+---+---------+
+;   --->| :-+---->| : |len| string  |
+;	+---+     +-+-+---+---------+
+;		    |
+;		    |		  +---+---+---------+
+;		    +------------>| : |len| string  |
+;				  +-+-+---+---------+
+;				    |
+;				    |		  +---+---+---------+
+;				    +------------>| 0 |len| string  |
+;						  +---+---+---------+
+;
+_Prepend:	PROCEDURE
+		PUSH	HL
+		PUSH	DE		; Save the address of the string for later, and
+		PUSH	DE		; allow DE to be user as working storage to 
+		LD	E,(HL)		; and find the address of the next node in the list.
+		INC	HL
+		LD	D,(HL)
+		EX	DE,HL		; Exchange the address of the string (on the top of the
+		EX	(SP),HL		; stack) with the pointer to the next node.
+;
+;--- Allocate space from the heap.
+;
+		LD	E,(HL)		; Find the number of bytes required to hold the string (usually this would
+		INC	HL		; be a fixed quanity, but in this case the situation is further complicated
+		LD	D,(HL)		; because the number of characters in a string is variable and an extra 
+		INC	DE		; two bytes are required to hold the length of the string).
+		INC	DE
+		LD	B,D		; Set up the number of bytes required in the data item for later and
+		LD	C,E
+		INC	DE		; allow an extra two bytes for the link.
+		INC	DE
+		EX	DE,HL		; OK - now I know how many bytes are needed use alloc to get them from the heap.
+		CALL	ALLOC##
+;
+;--- Store pointer to next item in list...
+;
+		POP	DE		; Restore the pointer to the list and move it to the new node.
+		LD	(HL),E
+		INC	HL
+		LD	(HL),D
+		INC	HL
+;
+;--- Move data item to the heap.
+;
+		EX	DE,HL
+		POP	HL
+		PUSH	DE
+		LDIR			; This should be interesting...
+;
+;--- Set up pointer to new node.
+;
+		POP	DE		; Restore pointer to the item
+		DEC	DE
+		DEC	DE
+		POP	HL		; and update the pointer to the list.
+		LD	(HL),E
+		INC	HL
+		LD	(HL),D
+		RET
+;
+;
+		SUBTTL	_append()
+		PAGE
+;
+;-- append(ref ref list, ref array [] of char)
+;
+;   Appends  a string to the tail the linked list.  Recursivly searches for
+;   the end of the list and then calls prepend() to insert the next element
+;   at the end of the list.
+;
+;	+---+	  +---+---+---------+
+;   --->| :-+---->| : |len| string  |
+;	+---+     +-+-+---+---------+
+;		    |
+;		    |		  +---+---+---------+
+;		    +------------>| : |len| string  |
+;				  +-+-+---+---------+
+;				    |
+;				    |		  +---+---+---------+
+;				    +------------>| 0 |len| string  |
+;						  +---+---+---------+
+;
+_Append:	PROCEDURE
+_Next:		PUSH	DE		; Save the address of the string.
+		LD	E,(HL)
+		INC	HL
+		LD	D,(HL)
+		LD	A,E		; Check for the end of the list.
+		OR	D
+		JR	NZ,_Skip	; Not found the end of the list yet
+		POP	DE		; Restore addess of the string
+		DEC	HL
+		CALL	_Prepend	; Insert item into list.
+		RET
+_Skip:		POP	HL		; Get the address of the string in DE and 
+		EX	DE,HL		; the pointer to the next node in HL.
+		CALL	_Next		; recursivly print the next item in the list.
+		RET
+;
+;
+		SUBTTL	_clear()
+		PAGE
+;
+;-- clear(ref byte, unsigned count)
+;
+;   Clears the specified number of bytes of memory.  
+;
+;
+_Clear:		PROCEDURE
+		LD	A,D		; Check that the number of bytes is
+		OR	E		; greater than zero!
+		RET	Z
+		LD	B,D		; Store the number of bytes BC.
+		LD	C,E
+		LD	D,H		; Copy the start address to DE
+		LD	E,L
+		INC	DE		; and increment it.
+		LD	(HL),0		; Clear the first byte.
+		LDIR			; Copy it to the remaining bytes.
+		RET
+;
+;
+;
+		END	LIST

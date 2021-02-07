@@ -1,0 +1,379 @@
+		TITLE	gets (ref buffer, ref array [] of char) - 6 Nov 1989 - MT
+		SUBTTL	'Gets a string'
+;
+		INCLUDE SYMBOLS
+		VERSION 'GETS 3.9 - 15 Oct 91'
+;
+;-- Reads  a  string  of up to 255 characters from an  input  stream  using
+;   getc().  If using a logical device then this routone provides a limited
+;   line  editing capability.  If an error ocours the error code is  passed
+;   to the calling program in the accumulator.
+;
+;   Input  is normally terminated when the upper array bound is exceeded or
+;   a formfeed or EOLN marker is encountered.  It it assumed that the  EOLN
+;   marker will always consist of a carridge return followed by a linefeed,
+;   the carridge return is ignored when reading from disk files!  This will
+;   also allow this routine to read files that originated on a UNIX system.
+;
+;   Although  this  procedure reads the data character by  character  using
+;   getc(), because it must check every character to see if it is a control
+;   character is is quite a lot slower than reading the file directly.
+;
+;   When  reading  data interactivly from the console some additional  line
+;   editing functions have been added to the usual CP/M line commands,  but 
+;   the use of Ctrl/P to turn on printer has NOT been implemented.
+;
+;    <Ctrl/X>	- Cancel.		<Ctrl/F>	- Cursor right.
+;    <Ctrl/U>	- Undo.			<Ctrl/D>	- Cursor left.
+;    <Ctrl/R>   - Redo.     		<Ctrl/E>	- Cursor to EOLN.
+;    <Ctrl/Z>   - Exit (returns EOF).	<Ctrl/H>	- Move cursor home.
+;    <Ctrl/C>   - Warmstart.		<Ctrl/G>	- Delete right.
+;    <DEL>      - Delete.
+;    <BS>	- Backspace.
+;
+;    If  the end of the string is encountered when reading from a disk file
+;    the the remainder of the line is discarded.  
+;
+;    When reading from a logical device the input is optionally echoed back
+;    to  the approprite device if I$Echo_Input is defined.  To avoid having
+;    to use a seperate output file this is done using direct BIOS calls!
+;
+;-- This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;** 27 Mar 91 -	Now uses direct IO versions of getc() and putc() - MT
+;
+;** 24 Sep 91 -	Modified to use call by value - MT
+;
+;**  8 Oct 91 -	Now  handles tab properly and treats formfeed as  an  input
+;		terminator - MT
+;
+;**  9 Oct 91 -	All basic editing functions implemented - MT
+;
+;** 10 Oct 91 -	Now allows backspace (non-destructive backspace) - MT
+;
+;** 10 Oct 91 -	Can now delete characters within a line - MT
+;
+;** 13 Oct 91 -	Modifed event handlers to them to call each other - MT
+;
+;** 15 Oct 91 -	Rewrote delete routine to tidy things up a bit - MT
+;
+;** 15 Oct 91 - Implemented  advanced  editing  functions  and  fixed  undo
+;		function - MT
+;
+I$Echo_Input	DEFL	TRUE			; Echo input from logical devices.
+I$Break_Enable	DEFL	TRUE			; Allow Ctrl/C.
+;
+;--- Insert - save the character in the string and adjust counters, if the string is already full the character is simply ingored.
+;
+I$Do_Insert:	PUSH	HL			; Save pointers to buffer and string and
+		PUSH	DE
+		PUSH	AF			; better save the character for later...
+		LD      A,(DE)			; Get the lo byte of the string length and chack that there is enough
+		XOR	C			; space left in the string. (The string must be less than 255 chacacters long).
+		JR	NZ,I$Move_Chr		; No more space left, restore
+		POP	AF			; the stack and ignore the character...
+		POP	DE
+		POP	HL
+		RET
+I$Move_Chr:	LD	H,0			; Calculate the addres of the last character in the string.
+		LD	L,C
+		ADD	HL,DE
+		INC	HL
+		LD	D,H
+		LD	E,L
+		INC	HL			; Allow two bytes for string length.
+		LD	A,C			; How many characters do I need to move ?
+		SUB	B
+I$Next_Chr:	JR	Z,I$Store_Chr
+		PUSH	AF
+		LD	A,(DE)
+		LD	(HL),A
+		POP	AF
+		DEC	HL
+		DEC	DE
+		DEC	A
+		JR	I$Next_Chr
+I$Store_Chr:	POP	AF			; Restore the character and save
+		LD	(HL),A			; it in the string.
+		INC	C			; Increment the number of characters read
+		INC	B			; and the cursor offset.
+		POP	DE
+		POP	HL
+		IF	I$Echo_Input
+		CALL	I$Echo_Chr
+		PUSH	BC
+		JR	I$Print_Chr
+		ELSE
+		RET				; Do it all over again.
+		ENDIF
+;
+;--- Delete character to left of current cursor position.
+;
+I$Do_Delete:	LD	A,B			; If the cursor is at the beginning of the line then
+		OR	A			; delete is invalid so ignore it !
+		RET	Z
+		PUSH	DE			; To delete a character from the string I will need to use 
+		PUSH	HL			; DE and HL so save these for now.
+		LD	H,0
+		LD	L,B
+		ADD	HL,DE
+		INC	HL
+		LD	D,H
+		LD	E,L			; DE contans address of deleted character.
+		INC	HL			; HL contains address of following character.
+		LD	A,B
+I$Del_Chr:	CP	C
+		JR	Z,I$Del_Done		; No more characters to move.
+		PUSH	AF
+		LD	A,(HL)
+		LD	(DE),A
+		POP	AF
+		INC	A
+		INC	HL
+		INC	DE
+		JR	I$Del_Chr
+I$Del_Done:	POP	HL			; Restore pointers.
+		POP	DE
+		DEC	C			; One less character left in the string !
+		DEC	B
+;
+;--- Remove character from input line if echoing input to device.
+;
+		IF	I$Echo_Input
+		PUSH	BC
+		LD	A,Asc$BS
+		CALL	I$Echo_Chr
+I$Print_Chr:	LD	A,B
+		CP	C
+		JR	Z,I$Erase_Chr		; No more characters to move.
+		CALL	I$Do_Advance
+		JR	I$Print_Chr
+I$Erase_Chr:	LD	A,Asc$SP		; Overwrite last remaining character.
+		CALL	I$Echo_Chr
+		LD	A,Asc$BS
+		CALL	I$Echo_Chr
+		POP	BC
+		LD	A,C
+		SUB	B
+I$Bksp_Chr:	RET	Z
+		PUSH	AF
+		LD	A,Asc$BS
+		CALL	I$Echo_Chr
+		POP	AF
+		DEC	A
+		JR	I$Bksp_Chr
+		ENDIF
+		RET
+;
+GETS::		PROCEDURE
+;
+;--- Set up the internal counters and read characters from the input stream until either an EOF is detected or the input
+;    is terminated by Linefeed (or Carridge return for interactive devices). If string overflow occours then any extra characters
+;    are ignored, although all editing functions remain active...
+;
+		XOR	A			; Since it is assumed that the maximum length of the string must
+		LD	C,A			; be less than 256 this allows us to use BC to keep track of both the number of
+		LD	B,A			; characters read and the current cursor position.
+I$Next:		PUSH	HL			; Save pointer to buffer since getc() will distroy the contents of HL.
+		CALL    GETC##
+		LD	A,L			; Transfer character to accumulator.
+		POP	HL			; Restore pointer to buffer.
+		JR	NZ,I$EOF		; If an error occours it is proably EOF - return the error code unchanged.
+;		AND	01111111B		; Mask off parity bit !
+		CALL	I$Do_Edit		; Edit character string.
+		JR	I$Next
+;
+;--- Basic editing functions.
+;
+I$Do_Edit:	CP	Asc$DEL			; Delete.
+		JR	Z,I$Do_Delete
+		CP	Asc$SP			; Other non control characters as inserted except
+		JP	NC,I$Do_Insert
+		CP	Asc$TAB			; tab which is treated as a vaild character ?
+		JP	Z,I$Do_Insert
+		CP	Asc$FF			; Formfeed - treated in the same way as a linefeed.
+		JR	Z,I$Do_EOLN
+		CP	Asc$LF			; Linefeed - end of line marker.
+		JR	Z,I$Do_EOLN
+		CP	Asc$CR			; Carridge return - handled as if it is a linefeed for logical devices.
+		JR	Z,I$Do_CR
+		CP	Asc$CAN			; <Ctrl/X> - Delete to start of line.
+		JR	Z,I$Do_Cancel
+		CP	Asc$NAK			; <Ctrl/U> - Undo input.
+		JR	Z,I$Do_Undo
+		CP	Asc$DC2			; <Ctrl/R> - Redo input.
+		JR	Z,I$Do_Undo
+;
+;--- Advanced line editing functions.
+;
+		CP	Asc$BS			; Backspace - move cursor left.
+		JR	Z,I$Do_Backup
+		CP	Asc$BEL			; <Ctrl/G> - delete right.
+		JR	Z,I$Do_Kill
+		CP	Asc$STX
+		JR	Z,I$Do_Home
+		CP	Asc$EOT			; <Ctrl/D> - same as backspace.
+		JR	Z,I$Do_Backup
+		CP	Asc$ENQ
+		JR	Z,I$Do_End
+		CP	Asc$ACK			; <Ctrl/F> - move cursor right.
+		JR	Z,I$Do_Advance
+;
+;--- Optional handler for break.
+;
+		IF	I$Break_Enable
+		CP	Asc$BRK			; <Ctrl/C> - break !
+		JR	Z,I$Do_Break
+		RET				; If not a recognized control code - ignore it...
+;
+;--- Force warm start if <Ctrl/C> is pressed.
+;
+I$Do_Break:	LD	C,BDOS$Reset		; Use BDOS reset function.
+		JP	BDOS##
+		ELSE
+		RET				; If not a recognized control code - ignore it...
+		ENDIF
+;
+;--- A carridge return marks EOLN only if read from a logical device - otherwise it is ignored !
+;
+I$Do_CR:	LD	A,(HL)			; Which device are we reading from ?
+		CP	SYS$Console		; Carridge return is only a valid terminator when reading from logical devices.
+		JR	Z,I$Do_EOLN		; I which case it is handled as if it was a line feed.
+		CP	SYS$Reader
+		JR	Z,I$Do_EOLN
+		RET				; Ignore it.
+;
+;--- Ok so thats all there is for now, since we have found an end of line character before the end of the string
+;    has been reached we can assume that a string terminator is required.
+;
+I$Do_EOLN:	XOR	A			; Just set the error code to say it all OK.
+		INC	SP			; Get rid of the unwanted return address
+		INC	SP			; and act like it's all over...
+;
+;--- Take care of the end of file condition, don't forget to return the error code.
+;
+I$EOF:		PUSH	AF			; Save error code.
+		LD	A,(DE)			; Add a belt to the braces and check that a terminator is required.
+		CP	C			; Does the string need a terminator ?
+		JR	Z,I$String_Full		; Not if it's already full it doesn't.
+		LD	H,0			; Use the current string length to calculate the address
+		LD	L,C			; within the string to hold the terminator.
+		ADD	HL,DE
+		INC	HL
+		INC	HL
+		XOR	A
+		LD	(HL),A			; Add a terminator character.
+I$String_Full:	POP	AF
+		RET				; OK, relax...
+;
+;--- Undo erases whole input line.
+;
+I$Do_Undo:	CALL	I$Do_End		; Goto the end of the line and fall through...
+;
+;--- Delete to beginning of line.
+;
+I$Do_Cancel:	LD	A,B			; Are we at the start of the line ?
+		OR	A
+		RET	Z
+		CALL	I$Do_Delete
+		JR	I$Do_Cancel
+;
+;--- Delete character to right of cursor.
+;
+I$Do_Kill:	LD	A,C			; Don't bother if cursor is at the end of the line already.
+		CP	B
+		RET	Z
+		CALL	I$Do_Advance
+		JP	I$Do_Delete
+;
+;--- Home moves cursor to beginning of line.
+;
+I$Do_Home:	LD	A,B			; If the cursor is at the start of the line stop.
+		OR	A
+		RET	Z
+		CALL	I$Do_Backup
+		JR	I$Do_Home
+;
+;--- End moves cursor to EOLN.
+;
+I$Do_End:	LD	A,B
+		CP	C
+		RET	Z
+		CALL	I$Do_Advance
+		JR	I$Do_End
+;
+;--- Advance moves the cursor one characrter to the right.
+;
+I$Do_Advance:	LD	A,B			; If the cursor is already at the end of the line then it is impossible
+		CP	C			; to move any further right !
+		RET	Z
+		IF	I$Echo_Input
+		PUSH	HL			; Save the pointer to the input buffer and use HL to calculate the address
+		LD	H,0			; of the next character in the string.
+		LD	L,B
+		ADD	HL,DE
+		INC	HL
+		INC	HL
+		LD	A,(HL)			; Get the next character, restore
+		POP	HL			; the buffer pointer and move the cursor by
+		CALL	I$Echo_Chr			; printing it.
+		ENDIF
+		INC	B
+		RET
+;
+;--- Backspace moves the cursor one character back (non-destructive delete).
+;
+I$Do_Backup:	LD	A,B			; If we are already at the start of a line then we can't go back
+		OR	A			; any further !
+		RET	Z
+		IF	I$Echo_Input
+		LD	A,Asc$BS
+		CALL	I$Echo_Chr
+		ENDIF
+		DEC	B
+		RET
+;
+;--- Echo character to complementry logical output device if it exists.
+;
+		IF	I$Echo_Input
+I$Echo_Chr:	PUSH	HL			; Need to save all registers since BDOS destroys 99% of all known registers.
+		PUSH	DE
+		PUSH	BC
+		PUSH	AF
+		LD	E,A
+		LD	A,(HL)			; Get device code and select approprite output routine.
+		CP	SYS$Reader
+		JR	Z,I$PUN_Device		; Output to punch !
+		CP	SYS$Console
+		JR	Z,I$CON_Device		; Output to console.
+;
+;--- Ignore all other devices.
+;
+I$NUL_Device:	POP	AF
+		POP	BC
+		POP	DE
+		POP	HL
+		RET
+;
+;--- Echo to console.
+;
+I$CON_Device:	LD      C,BIOS$CON_Output
+		CALL    BIOS##
+		JR	I$NUL_Device
+;
+;--- Echo to reader.
+;
+I$PUN_Device:	LD	C,BIOS$PUN_output
+		CALL	BIOS##
+		JR	I$NUL_Device
+		ENDIF
+;
+		END

@@ -1,0 +1,61 @@
+		TITLE   ECHO - 09 Nov 92 - MT
+		SUBTTL  'Echo the command line'
+;
+		INCLUDE SYMBOLS
+		VERSION 'ECHO 3.2 - MT - 25 Oct 20'
+;
+		USING   GETC, PUTC
+		USING   INITF, OPENF, CLOSEF, READF, WRITEF, BDOS
+;
+;-- Echos  the command line parameters to the console, prompting for  input
+;   if no command line parameters were specified.
+;
+;-- This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+;**  9 Nov 92   0.1   - Initial version - MT
+;
+;** 25 Oct 20   0.2   - Modified  to  accecpt multiple  command  parameters 
+;                       (comma seperated) - MT
+;
+;-- To Do	      - Strip off leading white space characters..
+;
+Use_Parser	DEFL	TRUE			; Use command line parser.
+;
+;Newline:	DEFB    02,00,Asc$CR,Asc$LF
+;
+ECHO:		PROGRAM	Output
+;
+_Loop:		LD      HL,Command              ; Command defined by default.
+		CALL    GETC##                  ; Get next character from the command line, returns status in A, character in HL.
+		JR      NZ,_Newline             ; An error occoured, print newline and exit.
+		LD      A,L
+		CP      Asc$EOF
+		JR      Z,_Newline              ; EOF, print newline and exit.
+		CP      Asc$SEP                 ; Check for a comma seperator.
+		JR	Z,_Newline		; All done
+;
+_Print:		EX      DE,HL                   ; Character now in DE.
+		LD      HL,Output
+		CALL    PUTC##
+		JR      _Loop
+		RET
+;
+_Newline:       LD      HL,Output
+		LD      DE,Asc$CR
+		CALL    PUTC##                  ; Print a new line
+		LD      DE,Asc$LF
+		CALL    PUTC##                  ; Print a new line
+		RET
+;
+		END     ECHO

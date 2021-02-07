@@ -1,0 +1,155 @@
+		TITLE	getc (ref file):char - 5 May 87 - MT
+		SUBTTL	'Gets a character'
+;
+		INCLUDE SYMBOLS
+		VERSION	'GETC 3.9 - 04 Aug 92'
+;
+;-- Gets the next character from the specified file using readf() read each
+;   block.  This  routine can be used to handle I/O from both  logical  and 
+;   physical  devices  and checks for requests for input from  EOF:,  NUL:, 
+;   RDR:, CON and TTY: as well as standard files. 
+;
+;   By checking the file access mode before any attempt is made to read the
+;   file attemptes to read from a file opened for writing are prevented and
+;   as  an  additional precaution it also checks for attempts to read  from
+;   the write only devices PUN:, PRN: and LST:.
+;
+;   Note - If  a  physical EOF is detected then the character  returned  is
+;   indeterminate.  A  logical EOF will return the Asc$EOF character,  this
+;   maintains the integrity of text files when handled as binary images.
+;
+;   This procedure assumes that a file header block exists in the following
+;   format and it has been correctly initlized.
+;
+;   +-+--------+---+-----------+-+-+--------------------------------------+
+;   | |        |   |           | | |                                      |
+;   +-+--------+---+-----------+-+-+--------------------------------------+
+;				| |
+;   |--- File Control Block ---|| ||----------- DMA Buffer ---------------|
+;	    (36 bytes)		| |		(128 bytes)
+;			       /   \
+;			 Status     Buffer pointer
+;			 (1 byte)   (1 byte)
+;
+;-- This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;** 26 Jan 91 - Revised to handle IO streams - MT
+;
+;** 26 Jan 91 - Added full checking on access mode - MT
+;
+;** 10 Apr 91 - Rewritten to use direct BIOS calls - MT
+;
+;** 15 Apr 91 - Now checks for EOF when doing logical IO - MT
+;
+;** 24 Sep 91 - Modified to use call by value - MT
+;
+;** 23 Jul 92 -	Now uses readf() to read next record - MT
+;
+;**  3 Aug 92 - Now recognizes CMD: as a vaild input device - MT
+;
+;**  4 Aug 92 - Modified to return ASCII EOF for both logical and  physical
+;		EOF - MT
+;
+;-- Read  character from the stream pointed to by HL into HL. Checking  for 
+;   logical devices and returning an error code if unsuccessful.
+;
+GETC::		FUNCTION			; Using pass by value allows this routine to return the character in HL.
+;
+;-- Check that the file has been opened.
+;
+		LD	A,(HL)			; Get device code.
+		OR	A			; If the device code has not been set then
+		LD	A,ERR$Not_Opened	; the file has not been opened.
+		RET	Z
+;
+;-- Was the file opened for reading ?
+;
+		LD	D,H			; Save the buffer pointer in DE.
+		LD	E,L
+		LD	BC,36			; Get the file access mode from the buffer masking off the most signifigent 
+		ADD	HL,BC			; fout bits.
+		LD	A,(HL)
+		AND	00001111B
+		CP	'R' AND 00001111B	; Since some devices are R/W an explicit check on the on the access mode is
+		LD	A,ERR$Bad_Mode		; required even though the mode is validated when the file is opened.
+		RET	NZ
+;
+;-- Check to see if there are any characters waiting in the buffer.
+;
+		INC	HL			; Incerement pointer to point to the buffer pointer and
+		LD	A,(HL)			; get the offset of the next character in the buffer.
+		CP	128
+		JR	NZ,I$Get_Char		; Get the next character from the buffer.
+;
+;-- OK  this  is  where it starts to get difficult, as there  are  no  more 
+;   characters  left in the buffer we need to read another record from disk
+;   or get the next character from the approprite logical device.
+;
+;-- Which device are we reading from ...
+;
+		LD	A,(DE)			; Get device code and select approprite IO routine.
+		CP	SYS$Console
+		JR	C,I$Read_Record		; Check for input from a physical device.
+		JR	Z,I$CON_Device		; or console.
+		CP	SYS$Reader
+		JR	Z,I$RDR_Device
+		CP	SYS$EOF
+		JR	Z,I$EOF_Device
+		CP	SYS$Null
+		JR	Z,I$EOF_Device
+		CP	SYS$Command		; Since rereading the command line is not possible once the buffer
+		JR	Z,I$EOF_Device		; is empty return EOF as there are no more characters.
+		LD	A,ERR$Bad_Device	; Input from CON:, RDR:, EOF:, or NUL: is valid but all other devices are
+		RET	NZ			; invalid.
+;
+;-- Read next character from approprite logical device.
+;
+I$EOF_Device:	LD	A,ERR$Read_Fail		; Both EOF: or NUL: return
+		LD	HL,Asc$EOF		; an EOF character and
+		RET				; physical end of file.
+;
+I$CON_Device:	LD      C,BIOS$CON_Input
+		JR	I$RDR_Device+2
+;
+I$RDR_Device:	LD	C,BIOS$RDR_Input
+		CALL	BIOS##
+		JR	I$Check_EOF
+;
+;-- Read next record from disk into buffer and reset pointers.
+;
+I$Read_Record:	PUSH	HL			; Save to pointer to the buffer pointer
+		INC	HL			; then increment pointer to start of DMA buffer and
+		EX	DE,HL			; exchange pointers before calling readf() to get
+		CALL	READF##			; the next record from the file.
+		POP	HL
+		JR	NZ,I$EOF_Device + 2	; Read error... (The only error possible since others should have been trapped)
+		LD	(HL),A			; Reset buffer pointer using convient zero.
+;
+;-- After all that hassle at last get the character from the buffer.
+;
+I$Get_Char:	INC	(HL)			; One less character in buffer pre-increment
+		LD	A,(HL)			; of pointer results in correct value for next read.
+		LD	C,A			; Find address of next character in buffer
+		LD	B,0			; by adding puffer pointer to HL, the pre-increment
+		ADD	HL,BC			; compensates for the fact that HL only pointed to
+		LD	A,(HL)			; the byte before the start of the DMA area - Debug that!
+;
+;-- Set up character in HL and clear status byte in A.
+;
+I$Check_EOF:	LD	L,A			; Return the character in HL.
+		LD	H,Asc$NUL
+		CP	Asc$EOF
+		LD	A,ERR$Read_EOF		; Logical EOF.
+		RET	Z
+		XOR	A			; Read operation successful - just the way it should be...
+		RET
+;
+		END

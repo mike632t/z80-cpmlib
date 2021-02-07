@@ -1,0 +1,85 @@
+                TITLE   RANDOM - 20 Jun 92 - MT
+                SUBTTL  'Lists random numbers'
+;
+		INCLUDE SYMBOLS
+                VERSION 'RANDOM 3.7 - 24 Jan 21'
+;                     
+                USING   RNDI
+                USING   PUTS, PUTC, PUTI,
+                USING   INITF, OPENF, CLOSEF, WRITEF, BDOS
+;
+;-- Displays a table of 360 random numbers to the VDU and outputs them to a
+;   file  if  one is specified on the command line.  No attempt is made  to
+;   generate a new seed value time so number sequence is same every time.
+;
+;-- This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+;** 20 Jun 92 -	Initial version - MT
+;
+;**  6 Jun 87 -	Order of parameters reversed - MT
+;
+;** 19 Oct 89 -	Prints a table of values - MT
+;
+;** 25 Dec 20 -	Changed  code to pass parameters to rndi() by value and not
+;		by reference - MT
+;
+;** 25 Dec 20 -	Updated the formatting and changed the filenames to use the
+;               current symbols definitions - MT
+;
+;** 25 Dec 20 -	Removed text messages - MT
+;
+;** 24 Jan 21 -	Does not print a CR/LF after the last line - MT
+;
+Seed:           DEFW    65537           ; Prime number seed.
+;
+Count:          DEFW    50000		; Number of lines!
+;
+;
+RANDOM:         PROGRAM  Output
+		LD	HL, Asc$Plus	; Display a plus sign in positive values.
+		LD	(PUTI## -4), HL
+		LD	HL, TRUE	; Set flag in PUTI to Display leading zeros.
+		LD	(PUTI## -2), HL
+;
+                LD      HL,(Seed)       ; Get seed in HL..
+                PUSH    HL              ; Save value on stack.
+Line:           LD      B,10            ; Number of columns.
+Column:         POP     HL              ; Restore value from stack.
+                CALL    RNDI##          ; Returns new random number in HL.
+                EX      DE,HL           ; Put number in DE
+                LD      HL,Output       ; and print it.
+                CALL    PUTI##
+                PUSH    DE              ; Save new value on stack.
+                LD      DE,Asc$TAB      ; Print a tab
+                CALL    PUTC##
+                DEC     B
+                JR      NZ,Column
+                PUSH	HL		; Save file handle
+                LD      HL,(Count)      ; Decriment the count.
+                DEC     HL
+                LD      (Count),HL
+                LD      A,L
+                OR      H
+                JR      Z,Done
+                POP	HL		; Restore file handle.
+                LD      DE, Asc$CR      ; Print CR/LF.
+                CALL    PUTC##
+                LD      DE, Asc$LF
+                CALL    PUTC##
+                JR	Line		; Print next line
+Done:		POP	HL		; Restore the stack and exit.
+		POP	DE
+                RET
+;
+                END     RANDOM

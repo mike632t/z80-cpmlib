@@ -1,0 +1,61 @@
+		TITLE	rndi (integer):integer - 27 May 87 - MT
+		SUBTTL	'Psudo random number generator'
+;
+		INCLUDE	SYMBOLS
+		DEFB	'%%RNDI 3.1 - 18 Aug 91%%'
+;
+;-- Function to generate 16-bit psudo random numbers.
+;
+;   This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+;   27 May 87	3.1   - Initial version - MT
+;   18 Aug 91	      - Modified  to use call by value rather than call  by
+;                       referance - MT
+;   25 Dec 20	4.0   - Tidied  up  the  code  to use  the  current  symbol
+;                       definitions and updated the formatting - MT
+;		4.1   - Replaced the existing psudo random number generator
+;			with a more modern one that gives linger cycles and
+;                       a more even distrobution. 
+;
+;-- Generate  a  psudo  random number  using  George  Marsaglia's  xorshift 
+;   algorythm  to  generate  a 16-bit psudo random  number.  This  combines
+;   three  xorshift  operations where a  number is exclusive-or'ed  with  a
+;   shifted copy of itselfthe previous value as the seed.
+;
+;	unsigned xorshift(n)
+;	{
+;		n ^= n << 7;
+;		n ^= n >> 9;
+;		n ^= n << 8;
+;		return n;
+;	}
+;
+RNDI::		FUNCTION		; Return value in HL.
+		LD	A,H	
+		RRA
+		LD	A,L
+		RRA
+		XOR	H
+		LD	H,A
+		LD	A,L
+		RRA
+		LD	A,H
+		RRA
+		XOR	L
+		LD	L,A
+		XOR	H
+		LD	H,A
+		RET
+;
+		END
