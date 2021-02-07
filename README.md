@@ -9,9 +9,6 @@ Also includes some example programs that use these library routines.
 
 ## To Do
 
-* Move macro definitions to separate files.
-* Review and reformat all I/O routines.
 * Add additional math routines.
 
-* Everything else!
 
