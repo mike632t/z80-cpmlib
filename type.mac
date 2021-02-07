@@ -2,9 +2,9 @@
 		SUBTTL  'Display to contents of a file'
 ;
 		INCLUDE SYMBOLS
-		VERSION	'TYPE 3.16 - 06 Feb 21'
+		VERSION	'TYPE 3.17 - 07 Feb 21'
 ;
-		USING   GETS, PUTS, GETC, PUTC
+		USING   GETS, PUTS, GETC, PUTC, PUTI
 		USING   INITF, OPENF, CLOSEF, READF, WRITEF, BDOS
 ;
 ;-- Allows  the user to display one or more ASCII files on the console, the 
@@ -71,22 +71,25 @@
 ;**  6 Feb 21 -	Fixed  another old bug in the code that added a null to the
 ;               filename to terminate the string if needed - MT
 ;
+;**  7 Feb 21 -	Added line numbering - MT
 ;
-;** To Do:	Finish implementing line numbering!
-;		Fix CTRL-C so it aborts compleatly
+;** To Do:	Fix CTRL-C so it aborts compleatly
 ;               Expand linefeeds if not preceeded by a carriadge return.
 ;
 ;-- Set up constants...
 ;
 Use_Parser	DEFL	TRUE			; Use command line parser.
+;
 Screen_Lines    DEFL    24			; No of lines on screen
 No_Lines        DEFL    16			; No of lines to scroll.
 ;
 Page_Flag:      DEFB    1			; Default to paging.
-Name_Flag:	DEFB    0			; Display filename.
+Name_Flag:	DEFB	0			; Display file names.
 Number_Flag:	DEFB    0			; Display linenumbers.
 ;
 Line_No:        DEFB    Screen_Lines		; Initial line number.
+Number:         DEFW    1			; Initial line number.
+
 ;
 ;-- Output messages.
 ;
@@ -103,6 +106,13 @@ Filename:   	DEFB    16,00,'                '
 ;   PROCRAM macro.
 ;
 TYPE::		PROGRAM Input, Output, File
+;
+;-- Reset the line number flag
+;
+		XOR	A
+		LD	(Number_Flag), A
+		LD	HL, TRUE		; Set flag in PUTI to Display leading zeros.
+		LD	(PUTI## -2), HL
 ;
 ;-- Read the input filename from the command line (stopping if we get to an
 ;   eoln or seperator character) and parse any command qualifiers.
@@ -210,6 +220,18 @@ Open_File:	LD      HL,File			; Set up file parameters.
 		CALL    OPENF##
 		JP      NZ,Exit			; Return error code.
 ;
+;-- Print first line num,ber
+;
+		LD	A,(Number_Flag)
+		OR	A
+		JR	Z,Read_Loop
+		LD	HL,(Number)
+		EX	DE,HL
+		LD	HL,Output
+		CALL	PUTI##
+		LD	DE,Asc$TAB
+		CALL	PUTC##
+;
 ;-- Read each character from the input file and output it to the console, pausing every 16 lines to allow the user to
 ;   read the information.
 ;
@@ -221,9 +243,15 @@ Read_Loop:      LD      HL,File			; Set up pointer to input file again.
 		CP      Asc$LF			; End of line?
 		JR      NZ,Type_Char		; If not just print the next character.
 ;
+;-- Increment line number.
+;
+		LD	HL,(Number)
+		INC	HL
+		LD	(Number),HL
+;
 ;-- Check to see if we should pause between pages.
 ;
-		LD      A,(Page_Flag)		; Only pause if the paging flag is set.
+Pause:		LD      A,(Page_Flag)		; Only pause if the paging flag is set.
 		OR      A
 		JR      Z,Type_Char		
 		LD      A,(Line_No)		; Check the number of lines remaining and
@@ -259,6 +287,21 @@ Wait_Loop:	LD      A,No_Lines		; Reset the number of lines
 ;
 Type_Char:      LD      HL,Output		; Output character to the console.
 		CALL    PUTC##
+;
+;-- Print line number
+;
+		LD      A,E
+		CP      Asc$LF			; Was this the end of line?
+		JR      NZ,Read_Loop		; If not just print the next character.
+		LD	A,(Number_Flag)		
+		OR	A
+		JR	Z,Read_Loop
+		LD	DE,(Number)
+		;EX	DE,HL
+		LD	HL,Output
+		CALL	PUTI##
+		LD	DE,Asc$TAB
+		CALL	PUTC##
 		JR      Read_Loop		; Carry on till the end of file is found.
 ;
 ;-- Abort on Ctrl-C
