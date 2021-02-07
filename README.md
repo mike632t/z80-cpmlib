@@ -1,4 +1,4 @@
-## asm-cpmlib - A collection of library routines for CP/M.
+## Z80-cpmlib - A collection of library routines for CP/M.
 
 Written is Z80 assembler.
 
