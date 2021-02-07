@@ -1,8 +1,8 @@
-		TITLE   TYPE <ufn> /N /C /P - 27 May 87 - MT
+		TITLE   TYPE <ufn> /R /N /C /P - 27 May 87 - MT
 		SUBTTL  'Display to contents of a file'
 ;
 		INCLUDE SYMBOLS
-		VERSION	'TYPE 3.17 - 07 Feb 21'
+		VERSION	'TYPE 3.19 - 07 Feb 21'
 ;
 		USING   GETS, PUTS, GETC, PUTC, PUTI
 		USING   INITF, OPENF, CLOSEF, READF, WRITEF, BDOS
@@ -73,7 +73,13 @@
 ;
 ;**  7 Feb 21 -	Added line numbering - MT
 ;
-;** To Do:	Fix CTRL-C so it aborts compleatly
+;**  7 Feb 21 -	Fixed line numbering for consecutive files - MT
+;
+;**  7 Feb 21 -	Line  numbers  can  now be reset (which  will  enable  line 
+;		numbering) - MT
+;
+;** To Do:	
+;		Fix CTRL-C so it aborts compleatly
 ;               Expand linefeeds if not preceeded by a carriadge return.
 ;
 ;-- Set up constants...
@@ -88,7 +94,7 @@ Name_Flag:	DEFB	0			; Display file names.
 Number_Flag:	DEFB    0			; Display linenumbers.
 ;
 Line_No:        DEFB    Screen_Lines		; Initial line number.
-Number:         DEFW    1			; Initial line number.
+Number:         DEFW    0			; Initial line number.
 
 ;
 ;-- Output messages.
@@ -166,8 +172,10 @@ Parse_Cont:     LD      HL,Command		; Get the next character from the command li
 Parse_Qualifier:LD      HL,Command
 		CALL    GETC##
 		LD      A,L
-		CP      'N'			; Check for all the vaild posibilities...
-		JR      Z,Numbering_on
+		CP      'R'			; Check for all the vaild posibilities...
+		JR      Z,Reset_Numbers
+		CP      'N'
+		JR      Z,Numbers_On
 		CP      'C'
 		JR      Z,Paging_Off
 		CP      'P'
@@ -186,9 +194,14 @@ Paging_Off:	XOR	A			; Clear accumulator to set flag FALSE.
 		LD      (Page_Flag),A		; Jump here with any non zero value to set flag TRUE.
 		JR      Parse_Cont
 ;
+;-- Restart page numbering (enables numbering)
+;
+Reset_Numbers:	LD	HL,0			; Reset line numbers
+		LD	(Number),HL		; Fall through to enable line numbering.
+;
 ;-- Set the number_flag TRUE to turn line numbering on or FALSE to turn it off.
 ;
-Numbering_On:	LD      (Number_Flag),A		; Jump here with any non zero value to set flag TRUE.
+Numbers_On:	LD      (Number_Flag),A		; Jump here with any non zero value to set flag TRUE.
 		JR      Parse_Cont
 ;
 ;-- Terminate the filename string with an AscNUL if necessary.
@@ -226,6 +239,8 @@ Open_File:	LD      HL,File			; Set up file parameters.
 		OR	A
 		JR	Z,Read_Loop
 		LD	HL,(Number)
+		INC	HL
+		LD	(Number),HL
 		EX	DE,HL
 		LD	HL,Output
 		CALL	PUTI##
