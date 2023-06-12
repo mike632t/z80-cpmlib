@@ -1,0 +1,97 @@
+		TITLE	alloc (integer):pointer - 12 Oct 92 - MT
+		SUBTTL	'Allocate memory from the heap'
+;
+		INCLUDE SYMBOLS
+		VERSION 'ALLOC 3.6 - 09 Nov 92'
+;
+;-- Orignally  concieved  as being conformant with  the  FORTRAN  parameter
+;   passing convention this routine proved to be particularly difficult and
+;   inefficent  to use, as passing pointers as by referance makes  it  more
+;   difficult  for the program to work with the values and means that extra
+;   storage space. Passing all parameters by value rather than by referance
+;   is easier and more efficent.
+;
+;   This  routine  allocates the specified number bytes of memory from  the
+;   heap,  updates the heap pointer (stored locally) and returns a  pointer
+;   to the allocated memory block. While some elementary checks are made to
+;   ensure that the memory requested has not been used by the stack or  the
+;   operating  system these are relativly primitive and only allow a single
+;   extra page for stack growth.
+;
+;   Using this function programs can build dynamic data structures, however
+;   there  is no garbage collection mechanism so once a block is  allocated 
+;   it cannot be deallocated and reused as is possible with some high level
+;   languages.  If  it is necessary do be abel to do this then the  program
+;   must keep track of all the allocated and unallocated blocks of memory. 
+;
+;   Is mamory can be allocated in fixed blocks makes it is relativly simple
+;   to  maintain a list of both the used and free blocks, allocating blocks
+;   from the free list as required and returning them to the free list when
+;   nolonger in use).
+;
+;   To  allow the calling programs to reset the heap pointer any attempt to
+;   allocate  zero bytes will reset the heap pointer.  
+;
+;   To ensure that the heap does not overwrite the program this must be the
+;   last routine in the program.
+;
+;-- This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+;** 13 Oct 92 -	Improved  the  checks  on the stack limit by using  16  bit
+; 		arithimitic - MT
+;
+;** 24 Oct 92 -	Modified the routine to allow users programs to hold  their
+;		own pointers the heap - MT
+;
+;** 25 Oct 92 -	Returns a pointer to the allocated block of memory - MT
+;
+;** 31 Oct 92 -	The heap pointer is now defined locally - MT
+;
+;**  9 Nov 92 -	Corectly returns the next free memory location from the top
+;		of the heap - MT
+;
+;**  9 Nov 92 -	Allocating zero bytes resets the heap pointer - MT
+;
+;-- Check  there is sufficent free space remaining below the stack for  the 
+;   number of bytes of memory requested.  This check only reserves a single
+;   page  of memory for the stack, in heavily recursive programs  this  may
+;   NOT be enough to stop the stack overwriting the heap.
+;
+ALLOC::		FUNCTION			; Using pass by value allows this routine to return the pointer to the allocated
+		LD	BC,(Heap)
+		LD	A,L			; memory block in HL,
+		OR	H
+		JR	NZ,Cont			; If HL is non zero don't worry about it...
+		LD	BC,Heap			; Otherwise reset the heap pointer
+		INC	BC
+		INC	BC
+		LD	(Heap),BC
+Cont:		PUSH	BC
+		ADD	HL,BC			; Find the future (possible) value of the heap pointer and
+		PUSH	HL
+		INC	H			; allow for an extra page of additional stack space.
+		SBC	HL,SP
+		POP	DE
+		POP	HL
+		LD	A,Err$No_Memory		; Not enough free memory!
+		RET	NC
+		LD	(Heap),DE		; Update the heap pointer.
+		XOR	A
+		RET
+;
+;-- Define the start of the heap.
+;
+Heap:		DEFW	$+2			; All memory above this point will be overwritten by the heap.
+;
+		END

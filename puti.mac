@@ -1,0 +1,132 @@
+		TITLE puti (ref file, integer) - 26 May 87 - MT
+		SUBTTL	 'Output a two's complement 16 bit integer'
+;
+		INCLUDE	 SYMBOLS
+		VERSION	 "PUTI 4.1 - 11 Jun 23"
+;
+;-- Writes a signed 16 bit two's complement integer to a file.
+;
+;   The	 routine works by subtracting successive powers of ten in order	 to
+;   find the each digit.
+;
+;-- This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by	the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,	but
+;   WITHOUT   ANY   WARRANTY;  without	even  the   implied   warranty	 of
+;   MERCHANTABILITY  or	 FITNESS  FOR A PARTICULAR  PURPOSE.  See  the	GNU
+;   General Public License for more details.
+;
+;   25 May 87	1.0   - initial version - MT
+;   15 Jan 91	2.0   - Revised to handle IO streams - MT
+;   20 Jan 91	      - Added full checking on access mode - MT
+;   10 Feb 91	      - Made the display of leading zeros optional - MT
+;   11 Feb 91	      - Allow direct call to print the contents of BC - MT
+;   30 Apr 91	      - Fix bug that corrupted contents of BC - MT
+;    6 Aug 91	3.0   - Re-written to use call by value- MT
+;    6 Feb 21	4.0   - Twenty nine and a half years later I decided it was
+;			time  to updated the code to use the latest symbols
+;			and try to optimize it a (little) bit! - MT
+;    7 Feb 21	4.1   - Storing the plus sign as a constant in memory means
+;			that is can be modified by the calling program - MT
+;   11 Jun 23	      - Modified to make the zero flag to a boolean and the
+;			plus sign a character (both single bytes) - MT
+;
+;** To Do:	      - Expand linefeeds if not preceeded by a carriadge return.
+;
+;-- Set up constants...
+;
+Use_Parser	DEFL	TRUE			; Use command line parser.
+
+;
+;** To Do:  Use NEGI to perform 2's complement (not written yet!).
+;
+;-- To	display the leading zeros set the zero flag TRUE (it may be altered
+;   directly  by the calling program since the address is two less than the
+;   entry point of the routine).  Similarly making the plus sign a constant
+;   also allows this to be modified, naughty but nice...
+;
+I$Plus_Sign:	DEFB	Asc$SP			; Character to use for plus sign.
+I$Zero_Flag:	DEFB	FALSE			; Display leading zeros.
+;
+;-- Get value in BC (working register DE is used for character output).
+;
+PUTI::		PROCEDURE
+;
+;-- Print the sign and take the 2's compliment if the number is negative.
+;
+		LD	A,D			; What sign is required ?
+		OR	A
+		PUSH	DE			; Save value.
+		LD	DE,(I$Plus_Sign)	; Loads whole of DE from a word rather than just a single byte into E.
+		JP	P,I$Put_Sign
+		POP	DE			; Restore the value and
+		LD	A,D			; find the 2's complement.
+		CPL
+		LD	D,A
+		LD	A,E
+		CPL
+		LD	E,A
+		INC	DE
+		PUSH	DE			; Save value.
+		LD	E,Asc$MINUS		; Minus sign requred.
+I$Put_Sign:	CALL	PUTC##			; Print the sign and continue.
+		POP	DE			; Restore value.
+		RET	NZ			; Write error! Error code already in A.
+;
+;-- Print the digits.
+;
+		PUSH	HL			; Save file pointer on the stack.
+		EX	DE,HL			; Get the value in HL.
+		LD	A,(I$Zero_Flag)		; Initialize counter.
+		LD	D,A
+		LD	BC,-10000
+		CALL	I$Get_Digit		; Get number of 10000s.
+		CALL	I$Put_Chr
+		JR	NZ,I$Error
+		LD	BC,-1000
+		CALL	I$Get_Digit		; Get number of 1000s.
+		CALL	I$Put_Chr
+		JR	NZ,I$Error
+		LD	BC,-100
+		CALL	I$Get_Digit		; Get number of 100s.
+		CALL	I$Put_Chr
+		JR	NZ,I$Error
+		LD	BC,-10
+		CALL	I$Get_Digit		; Get number of 10s.
+		CALL	I$Put_Chr
+		JR	NZ,I$Error
+		LD	BC,-1
+		CALL	I$Get_Digit		; Get number of units.
+		CALL	I$Put_Chr
+I$Error:	POP	DE
+		RET
+
+I$Get_Digit:	LD	A, -1			; Returns next digit in A.
+I$Loop:		INC	A
+		ADD	HL,BC
+		JR	C,I$Loop
+		SBC	HL,BC
+		RET
+;
+I$Put_Chr:	LD	E,A			; Put digit into E
+		OR	D			; Set flags
+		LD	D,A
+		RET	Z			; Skip leading zeros
+		POP	BC			; Save return address.
+		EX	(SP),HL			; Swap value with file pointer.
+		PUSH	DE			; Save counter
+		LD	A, E
+		ADD	A, '0'
+		LD	E,A			; Put digit into E
+		XOR	A
+		LD	D,A
+		CALL	PUTC##
+		POP	DE			; Restore counter
+		EX	(SP),HL			; Swap file pointer with value.
+		PUSH	BC			; Restore return address.
+		RET
+;
+		END

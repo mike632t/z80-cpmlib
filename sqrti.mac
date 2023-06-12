@@ -1,0 +1,92 @@
+                TITLE   sqrti (integer):integer - 25 Dec 20 - MT
+                SUBTTL  'Integer square root'
+;
+                INCLUDE SYMBOLS
+                VERSION 'SQRTI 4.0 - 25 Dec 20'
+;
+;-- Function to find 16-bit integer square roots.
+;
+;   This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+;   http://www.retroprogramming.com/2017/07/
+;
+;-- To Do             - Return an error if n is negative...
+;
+;-- Returns the integer square root of a 16-bit number.
+;
+;       int isqrt(int n) {
+;          int root, bit;
+;          root = 0; bit = 0x4000;
+;          while (bit != 0) {
+;             if (n >= (root + bit)) {
+;                n = n - (root + bit); /* Find remainder */
+;                root = (root >> 1) + bit;
+;             } else {
+;                root = root >> 1;
+;             }
+;             bit = bit >> 2;
+;          }
+;          return root;
+;       }
+;
+;       int isqrt(int DE) {
+;          HL = 0; BC = 0x4000;
+;          while (BC != 0) {
+;             if (DE >= (HL + BC)) {
+;                DE = DE - (HL + BC); /* Find remainder */
+;                HL = (HL >> 1) + BC;
+;             } else {
+;                HL = HL >> 1;
+;             }
+;             BC = BC >> 2;
+;          }
+;          return HL;
+;       }
+;
+;
+SQRTI::         FUNCTION                ; Returns value in HL.
+                EX      DE,HL           ; Put parameter in DE!
+                LD      HL,00000H       ; root = 0
+                LD      BC,04000H       ; bit = 0x4000
+_Loop:          LD      A,B             ; bit == 0 ?
+                OR      C
+                JR      Z,_Done
+                PUSH    HL              ; Save HL.
+                ADD     HL,BC           ; DE >= HL + BC ?
+                DEC     HL
+                OR      A
+                SBC     HL,DE
+                POP     HL              ; Restore HL
+                JR      NC,_Else
+                PUSH    HL
+                ADD     HL,BC           ; DE = DE - (HL + BC);
+                EX      DE,HL
+                OR      A
+                SBC     HL,DE
+                EX      DE,HL
+                POP     HL
+                SRL     H               ; HL = (HL >> 1) + BC
+                RR      L
+                ADD     HL,BC
+                JR      _Continue
+_Else:          SRL     H               ; HL = HL >> 1
+                RR      L
+_Continue:      SRL     B               ; BC = BC >> 2
+                RR      C
+                SRL     B
+                RR      C
+                JR      _Loop
+_Done:          RET                     ; return root.
+;
+                END

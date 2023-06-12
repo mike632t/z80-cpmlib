@@ -1,0 +1,307 @@
+		TITLE	CAT <ufn> /N /C /P - 27 May 87 - MT
+		SUBTTL	'Display to contents of a file'
+;
+		INCLUDE SYMBOLS
+		VERSION 'CAT 4.2 - 12 Jun 23'
+;
+		USING	GETS, PUTS, GETC, PUTC, PUTI
+		USING	INITF, OPENF, CLOSEF, READF, WRITEF, BDOS
+;
+;-- Allows  the user to display one or more ASCII files on the console, the
+;   display will pause after displaying the first full screen to allow	the
+;   information	 to  be read.  The operator can then use either <SPACE>	 to
+;   advance  the display to the next line or <RETURN> to display  the  next
+;   sixteen lines.
+;
+;   The	 operator may interupt the program by pressing <CTRL-C> or <CTRL-Y>
+;   to completly quit, or <CTRL -Z> to skip to the next file.
+;
+;   This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by	the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;-- This  program  is distributed in the hope that it will be  useful,	but
+;   WITHOUT   ANY   WARRANTY;  without	even  the   implied   warranty	 of
+;   MERCHANTABILITY  or	 FITNESS  FOR A PARTICULAR  PURPOSE.  See  the	GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.	If not, see <http://www.gnu.org/licenses/>.
+;
+;   20 Jun 92 - 3.0   - Rewritten  to use call by value instead of call	 by
+;			referance - MT
+;   29 Jul 92 -	      - Added checks for <CTRL-Y> and <CTRL-C> - MT
+;   30 Jul 92 - 3.1   - Updated	 the command line parser to allow  multiple
+;			options to be specified - MT
+;    4 Aug 92 -	      - Leading spaces stripped from the command line - MT
+;    6 Aug 92 -	      - Error handler incoporated - MT
+;    9 Aug 92 -	      - Restart if an error occours - MT
+;   10 Aug 92 -	      - Allows the use of <SPACE> to advance by one line or
+;			<RETURN> to advance by one page - MT
+;   17 Aug 92 - 3.2   - Added extra code to allow more than one filename to
+;			be specified on the command line - MT
+;   18 Aug 92 -	      - Tidied up the display of multiple files by printing
+;			a CR/LF at the start of every file - MT
+;    9 Nov 92 - 3.3   - Modified to use new program header - MT
+;   17 Nov 92 - 3.4   - Changed error handling mechanism - MT
+;   23 Nov 92 - 3.5   - Do not pause after the last file is displayed - MT
+;   23 Nov 92 -	      - Check for <CTRL-Z> and skips to the next file - MT
+;   23 Jan 21 - 4.0   - Updated to use latest symbols which include updated
+;			macros	with the ability to parse  comma  delimited
+;			arguments - MT
+;   30 Jan 21 -	      - Tidied	up  exit code (EOF falls through to  break,
+;			which falls through to close file) - MT
+;    6 Feb 21	4.1   - Fixed another old bug in the code that added a null
+;			to the filename to terminate the string - MT
+;   11 Jun 23	4.2   - Updated verson numbers - MT
+;		      - Now checks for the line number flag correctly - MT
+;
+;
+;** To Do:	Expand linefeeds if not preceeded by a carriadge return.
+;
+;-- Set up constants...
+;
+Use_Parser	DEFL	TRUE			; Use command line parser.
+Screen_Lines	DEFL	24			; No of lines on screen
+Page_Size	DEFL	16			; No of lines to scroll.
+;
+Page_Flag:	DEFB	1			; Default to paging.
+Name_Flag:	DEFB	1			; Display filename.
+Number_Flag:	DEFB	0			; Display linenumbers.
+;
+Line_No:	DEFW	0			; Initial line number.
+Counter:	DEFB	Screen_Lines		; Counter.
+;
+;-- Output messages.
+;
+E_O_F:		DEFB	07,00,'<E O F>'
+Newline:	DEFB	02,00,Asc$LF,Asc$CR
+;
+;-- Input filename.
+;
+Filename:	DEFB	16,00,'		       '
+;
+;-- Define this routine as a program with three files.
+;
+;   If used then the input and output files are opened automatically by the
+;   PROCRAM macro.
+;
+CAT::		PROGRAM Input, Output, File
+;
+;-- Reset line number and flag.
+;
+		XOR	A			; Clear A.	   
+		LD	(Number_Flag),A		; Clear the number flag.
+;
+;-- Take advantage of the fact that the output formatting flags are  stored
+;   immediatly	preceeding the address of the PUTI routine to modify one of
+;   them.
+;
+		CPL				; Complement A.
+		LD	(PUTI## -1),A		; Set flags for leading zeroes.
+		LD	HL,0			; Reset line numbers
+		LD	(Line_No),HL		; Fall through to enable line numbering.
+;
+;-- Read the input filename from the command line (stopping if we get to an
+;   eoln or seperator character) and parse any command qualifiers.
+;
+		LD	A,(Filename)
+		LD	B,A
+		INC	B			; Increment counter to allow decrement to set flags before testing value.
+		LD	DE,Filename+2		; Set up pointer to the first character in the string.
+Parse_Skip:	LD	HL,Command		; Strip leading spaces from command string.
+		CALL	GETC##
+		LD	A,L
+		CP	Asc$SP			; Check for leading whitespace (ASCII space or tab characters) and 
+		JR	Z,Parse_Skip		; ignore them...
+		CP	Asc$TAB
+		JR	Z,Parse_Skip
+;
+Parse_Next:	CP	Asc$EOF
+		JR	Z,Parse_Done
+		CP	','			; Get character in the accumulator and check for flags, terminators,
+		JR	Z,Parse_Done		; or end of command line etc...
+		CP	'/'			; No command switches allowed (this could get rather complicated later).
+		JR	Z,Parse_Qualifier
+		CP	Asc$SP			; Spaces may preceed a qualifier, so continue parsing until we find one (or the
+		JR	Z,Parse_Cont		; command line runs out).
+		CP	Asc$TAB
+		JR	Z,Parse_Cont
+		DEC	B
+		JR	Z,Invalid_File
+		LD	(DE),A			; Add character to filename and 
+		INC	DE			; increment pointer to point to next position in string
+		LD	HL,Command		; before getting next character.
+		CALL	GETC##
+		LD	A,L
+		JR	Parse_Next
+;
+Parse_Cont:	LD	HL,Command		; Get the next character from the command line.
+		CALL	GETC##
+		LD	A,L
+		CP	Asc$EOF			; No more characters left to worry about - including trailing spaces!
+		JR	Z,Parse_Done
+		CP	Asc$SEP
+		JR	Z,Parse_Done
+		CP	Asc$SP			; Skip any leading spaces before the qualifier
+		JR	Z,Parse_Cont
+		CP	Asc$TAB
+		JR	Z,Parse_Cont
+		CP	'/'			; and parse one when it is found.
+		JR	Z,Parse_Qualifier
+		JR	Invalid_Command		; But anything else is a rogue character.
+;
+Parse_Qualifier:LD	HL,Command
+		CALL	GETC##
+		LD	A,L
+		CP	'N'			; Check for all the vaild posibilities...
+		JR	Z,Numbering_on
+		CP	'C'
+		JR	Z,Paging_Off
+		CP	'P'
+		JR	Z,Paging_Off + 1	; Treat any non zero value as TRUE  paging
+;
+Invalid_Command:LD	A,ERR$Bad_Command	; If the qualifier isn't vaild fall through to the error handler.
+		OR	A
+		RET
+Invalid_File:	LD	A,ERR$Bad_File
+		OR	A
+		RET
+;
+;-- Set the page_flag TRUE to turn paging on or FALSE to turn it off.
+;
+Paging_Off:	XOR	A			; Clear accumulator to set flag FALSE.
+		LD	(Page_Flag),A		; Jump here with any non zero value to set flag TRUE.
+		JR	Parse_Cont
+;
+;-- Set the number_flag TRUE to turn line numbering on or FALSE to turn it off.
+;
+Numbering_On:	LD	(Number_Flag),A		; Jump here with any non zero value to set flag TRUE.
+		JR	Parse_Cont
+;
+;-- Terminate the filename string with an AscNUL if necessary.
+;
+Parse_Done:	DEC	B			; at the end before displaying the next file.
+		JR	Z,$+5
+		LD	A,Asc$NUL
+		LD	(DE),A	
+;
+;-- Display filename if required.
+;
+		LD	A,(Name_Flag)
+		OR	A
+		JR	Z,Open_File
+		LD	HL,Output
+		LD	DE,Filename
+		CALL	PUTS##
+		LD	HL,Output
+		LD	DE,Newline
+		CALL	PUTS##
+;
+;-- Attempt to open the input file.
+;
+Open_File:	LD	HL,File			; Set up file parameters.
+		LD	DE,Filename
+		CALL	INITF##			; Parse file name.
+		JP	NZ,Exit			; Return error code.
+		LD	DE,'R'			; Open input file for reading.
+		CALL	OPENF##
+		JP	NZ,Exit			; Return error code.
+;
+;-- Read each character from the input file and output it to the console, pausing every 16 lines to allow the user to
+;   read the information.
+;
+Type_Number:	LD	A,(Number_Flag)
+		CP	0
+		JR	Z,Read_Loop		; Skip unless non-zero (any non zero value is true).
+		LD	HL,(Line_no)		; Increment line number.
+		INC	HL
+		LD	(Line_No),HL
+		LD	HL,Output
+		LD	DE,(Line_No)
+		CALL	PUTI##
+		LD	DE,Asc$TAB
+		CALL	PUTC##
+;
+Read_Loop:	LD	HL,File			; Set up pointer to input file again.
+		CALL	GETC##
+		JR	NZ,_End			; Both logical and physical EOF return error codes..
+		EX	DE,HL			; Set up DE for putc().
+		LD	A,E
+		CP	Asc$LF			; End of line?
+		JR	NZ,Type_Char		; If not just print the next character.
+;
+;-- Check to see if we should pause between pages.
+;
+Pause:		LD	A,(Page_Flag)		; Only pause if the paging flag is set.
+		OR	A
+		JR	Z,Type_Char		
+		LD	A,(Counter)		; Check the number of lines remaining and
+		DEC	A			; decrement the number of lines remaining.
+		LD	(Counter),A
+		JR	NZ,Type_Char		; Not yet end of page, carry on with next line.
+;
+;-- If we are at the bottom of a page pause and wait for the user to  press
+;   either <RETURN> or <SPACE> before continuing, <SPACE> will display only
+;   the	 next line to be printed, and <RETURN> will cause the next 16 lines
+;   printed before pausing again.
+;
+
+Wait_Loop:	LD	A,Page_Size		; Reset the number of lines
+		LD	(Counter),A
+		LD	HL,Input		; Wait until the <RETURN> key is pressed.
+		CALL	GETC##
+		LD	A,L
+		CP	Asc$EOF			; <CTRL-Z> added as an additional abort command to abort current file only.
+		JR	Z,Break
+		CP	Asc$EOM			; Include checks for <CTRL-Y> and <CTRL-C>.
+		JR	Z,Abort
+		CP	Asc$BRK
+		JR	Z,Abort
+		CP	Asc$CR			; <RETURN> displays next 16 lines.
+		JR	Z,Type_Char
+		LD	A,L			; Restore characterto A.
+		CP	Asc$SP			; <SPACE> displays only the next line.
+		LD	A,1
+		LD	(Counter),A
+		JR	Z,Type_Char
+		JR	Wait_Loop
+;
+;-- Print the next character.
+;
+Type_Char:	LD	HL,Output		; Output character to the console.
+		CALL	PUTC##
+		LD	A,E
+		CP	Asc$LF			; End of line?
+		JR	Z,Type_number
+		JR	Read_Loop		; Carry on till the end of file is found.
+;
+;-- Abort on Ctrl-C
+;
+Abort:		LD	HL,Command		; Strip remaining characters from the command line.
+		CALL	GETC##
+		LD	A,L
+		CP	Asc$EOF
+		JR	NZ,Abort
+		JR	_Close			; Close input file
+;
+;-- EOF found, close files and return to CP/M.
+;
+_End:		LD	HL,Output		; Display end of file marker.
+		LD	DE,E_O_F
+		CALL	PUTS##
+;
+;-- Break on Ctrl-Z
+;
+Break:		LD	HL,Output		; Print newline.
+		LD	DE,Newline
+		CALL	PUTS##
+;
+;-- Close the input file.
+;
+_Close:		LD	HL,File			; Close input file
+		CALL	CLOSEF##
+Exit:		RET
+;
+		END	CAT
