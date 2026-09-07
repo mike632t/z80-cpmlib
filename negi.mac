@@ -1,0 +1,42 @@
+		TITLE	rndi (integer):integer - 27 May 87 - MT
+		SUBTTL	'Psudo random number generator'
+;
+		INCLUDE	SYMBOLS
+		DEFB	'%%RNDI 2.0 - 18 Aug 91%%'
+;
+;-- Function to generate 16-bit psudo random numbers.
+;
+;   This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+;   12 Sep 87	1.0   - Initial version - MT
+;   07 Aug 26	      - Modified  to use call by value rather than call  by
+;                       reference - MT
+;
+;   negi (integer);
+;
+;   Returns  the  negative value of the argument, uses  common  subroutines
+;   from a disassembly of the ZX80 ROM.
+;
+;   Checks for overflow (-32768) and returns success/fail in A.
+;
+NEGI::		FUNCTION		; Return value in HL.
+		XOR	A		; Clear carry, needed for subtract.
+		LD	D,A
+		LD	E,A
+		EX	HL,DE
+		SBC	HL,DE           ; Subtract HL from zero.
+		RET	PO              ; No overflow, return zero.
+		CPL			; Error flag.
+		RET
+;
