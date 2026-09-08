@@ -2,7 +2,7 @@
 		SUBTTL	'Hello World'
 ;
 		INCLUDE SYMBOLS
-		VERSION	'HELLO 0.1 - 23 Dec 20'
+		VERSION	'HELLO 0.2 - 08 Sep 26'
 ;
 		USING	PUTS, PUTC
 		USING	INITF, OPENF, CLOSEF, WRITEF, BDOS
@@ -28,14 +28,14 @@
 ;   You should have received a copy of the GNU General Public License along
 ;   with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;
-;** 23 Dec 20   0.1   - Initial version - MT
+;** 23 Dec 20	0.1   - Initial version - MT
+;
+;** 08 Sep 26	0.2   - Finish with a CR/LF - MT
 ;
 Hello_World:	DEFB	15,00,'Hello World !!,',Asc$CR,Asc$LF
 ;
 HELLO::		PROGRAM	Output
 ;
-;--- Builds  a new linked list by alternatly appending or  prepending  each
-;    elements to the list.
 ;
 		LD	BC,100			; Use 16 bit counter.
 		LD	DE,Hello_World		; Pointer to linked list.
@@ -45,6 +45,10 @@ _Loop:		CALL	PUTS##			; Print 'Hello World !! '
 		LD	A,B
 		OR	C			; Are we nearly there yet..?
 		JR	NZ,_Loop
+		LD	DE,Asc$CR		; Print CR/LF.
+		CALL	PUTC##
+		LD	DE,Asc$LF
+		CALL	PUTC##
 		RET				; Return to CP/M.
 ;
 		END	HELLO
