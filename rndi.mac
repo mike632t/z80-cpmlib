@@ -7,31 +7,33 @@
 ;-- Function to generate 16-bit psudo random numbers.
 ;
 ;   This program is free software: you can redistribute it and/or modify it
-;   under  the terms of the GNU General Public License as published by  the
+;   under  the terms of the GNU General Public License as published by	the
 ;   Free Software Foundation, either version 3 of the License, or (at  your
 ;   option) any later version.
 ;
-;   This  program  is distributed in the hope that it will be  useful,  but
-;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
-;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   This  program  is distributed in the hope that it will be  useful,	but
+;   WITHOUT   ANY   WARRANTY;  without	even  the   implied   warranty	 of
+;   MERCHANTABILITY  or	 FITNESS  FOR A PARTICULAR  PURPOSE.  See  the	GNU
 ;   General Public License for more details.
 ;
 ;   You should have received a copy of the GNU General Public License along
-;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;   with this program.	If not, see <http://www.gnu.org/licenses/>.
 ;
 ;   27 May 87	3.1   - Initial version - MT
-;   18 Aug 91	      - Modified  to use call by value rather than call  by
-;                       referance - MT
-;   25 Dec 20	4.0   - Tidied  up  the  code  to use  the  current  symbol
-;                       definitions and updated the formatting - MT
+;   18 Aug 91	      - Modified  to use call by value rather than call	 by
+;			reference - MT
+;   25 Dec 20	4.0   - Tidied	up  the	 code  to use  the  current  symbol
+;			definitions and updated the formatting - MT
 ;		4.1   - Replaced the existing psudo random number generator
 ;			with a more modern one that gives linger cycles and
-;                       a more even distrobution. 
+;			a more even distribution. 
 ;
-;-- Generate  a  psudo  random number  using  George  Marsaglia's  xorshift 
-;   algorythm  to  generate  a 16-bit psudo random  number.  This  combines
-;   three  xorshift  operations where a  number is exclusive-or'ed  with  a
-;   shifted copy of itselfthe previous value as the seed.
+;   rndi (integer);
+;
+;   Generate  a	 psudo	random number  using  George  Marsaglia's  xorshift 
+;   algorithm.	This  generates a 16-bit pseudo-random number  by  applying
+;   three  successive  xorshift	 operations, where  the	 current  value	 is
+;   exclusive-ORed with a shifted copy of itself.
 ;
 ;	unsigned xorshift(n)
 ;	{
