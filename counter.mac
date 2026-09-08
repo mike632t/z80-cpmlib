@@ -1,0 +1,71 @@
+		TITLE   COUNTER - 08 Sep 26 - MT
+		SUBTTL  'Just a counter'
+;
+		INCLUDE SYMBOLS
+		VERSION 'COUNTER 1.0 - 08 Sep 26'
+;                     
+		USING   PUTS, PUTC, PUTI, DECI
+		USING   INITF, OPENF, CLOSEF, WRITEF, BDOS
+;
+;-- Prints out successive numbers.
+;
+;-- This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+;** 08 Sep 26 -	Initial version - MT
+;
+;
+Number:		DEFW    -32700           	; Initial value.
+;
+Count:          DEFW    12			; Number of lines!
+;
+Newline:        DEFB    02,00,Asc$LF,Asc$CR
+Overflow:       DEFB    11,00,Asc$LF,Asc$CR,'?Overflow'
+;
+COUNTER:        PROGRAM  Output
+		LD      HL,Output
+		LD      DE,(Number)		; Get value in DE..
+Line:           LD      B,10            	; Number of columns.
+Column:         CALL    PUTI##			; Print the current value.
+		PUSH    DE              	; Save new value on stack
+		LD      DE,Asc$TAB      	; while we print a tab.
+		CALL    PUTC##
+		POP	DE			; Restore the current value.
+		EX      DE,HL
+		CALL    DECI##          	; Returns new value number in HL.
+		EX      DE,HL
+		;JR	NZ,Error
+		DEC     B
+		JR      NZ,Column
+		PUSH	HL			; Save file handle
+		LD      HL,(Count)      	; Decrement the count.
+		DEC     HL
+		LD      (Count),HL
+		LD      A,L
+		OR      H
+		POP	HL			; Restore file handle.
+		JR      Z,Done
+		PUSH    DE              	; Save new value on stack
+		LD      DE,Newline     		; while we print a newline.
+		CALL    PUTS##
+		POP	DE
+		JR	Line			; Print next line
+;
+Error:		LD      DE, Overflow      	; Print error message.
+		CALL    PUTS##	
+Done:		LD      DE, Newline      	; Print CR/LF.
+		CALL    PUTS##
+		RET
+;
+;
+		END     COUNTER
