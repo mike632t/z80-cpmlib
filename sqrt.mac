@@ -25,18 +25,20 @@
 ;   You should have received a copy of the GNU General Public License along
 ;   with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;
-;** 25 Dec 20         - Initial version - MEJT
+;** 25 Dec 20         - Initial version - MT
 ;
-;** 25 Dec 20         - Removed text messages (just prints values) - MEJT
+;** 25 Dec 20         - Removed text messages (just prints values) - MT
+;
+;** 08 Sep 26         - Reformatted table - MT
 ;
 SQRT::		PROGRAM  Output
-		LD	HL, TRUE	; Set flag in PUTI to Display leading zeros.
-		LD	(PUTI## -2), HL
+		LD	A, TRUE	; Set flag in PUTI to Display leading zeros.
+		LD	(PUTI## -1), A
 ;
 		LD	HL,0		; Get value in HL..
 		PUSH	HL		; Save value on stack.
 		LD      C,18		; Number of lines to print.
-Line:		LD      B,8		; Number of columns.
+Line:		LD      B,4		; Number of columns.
 Column:		POP	HL
                 INC	HL		
                 PUSH	HL		; Save new value on stack.
@@ -56,6 +58,9 @@ Column:		POP	HL
                 CALL	PUTC##
                 POP	DE		; Get the result 
                 CALL	PUTI##		; and print it.
+                LD	DE,Asc$TAB
+                CALL	PUTC##
+                CALL	PUTC##
 _Skip:		DEC     B
                 JR      NZ,Column
                 LD	DE,Asc$CR	; Print CR/LF.
