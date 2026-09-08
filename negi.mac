@@ -1,10 +1,10 @@
-		TITLE	rndi (integer):integer - 27 May 87 - MT
-		SUBTTL	'Psudo random number generator'
+		TITLE	negi (integer):integer - 12 Sep 87 - MT
+		SUBTTL	'Change sign'
 ;
 		INCLUDE	SYMBOLS
-		DEFB	'%%RNDI 2.0 - 18 Aug 91%%'
+		DEFB	'%%NEGI 2.0 - 07 Sep 26%%'
 ;
-;-- Function to generate 16-bit psudo random numbers.
+;   Function to negate an 16-bit integer.
 ;
 ;   This program is free software: you can redistribute it and/or modify it
 ;   under  the terms of the GNU General Public License as published by  the
@@ -20,7 +20,7 @@
 ;   with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;   12 Sep 87	1.0   - Initial version - MT
-;   07 Aug 26	      - Modified  to use call by value rather than call  by
+;   07 Sep 26	      - Modified  to use call by value rather than call  by
 ;                       reference - MT
 ;
 ;   negi (integer);
