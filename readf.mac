@@ -109,7 +109,7 @@ I$Write_Record:	PUSH	HL			; Save DMA address and the address of the FCB
 ;-- Check for write errors.
 ;
 		RET	Z			; No problem.
-		LD	A,ERR$Read_Fail		; Set up correct error code for a write error - Disk Full !
+		LD	A,ERR$Read_Fail		; Set up correct error code for a read error.
 		RET
 ;
 		END
