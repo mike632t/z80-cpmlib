@@ -13,35 +13,35 @@
 ;   advance  the display to the next line or <RETURN> to display  the  next
 ;   sixteen lines.
 ;
-;   The	 operator may interupt the program by pressing <CTRL-C> or <CTRL-Y>
-;   to completly quit, or <CTRL -Z> to skip to the next file.
+;   The	operator may interrupt the program by pressing <CTRL-C> or <CTRL-Y>
+;   to completely quit, or <CTRL -Z> to skip to the next file.
 ;
-;   This program is free software: you can redistribute it and/or modify it
-;   under  the terms of the GNU General Public License as published by	the
+;-- This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
 ;   Free Software Foundation, either version 3 of the License, or (at  your
 ;   option) any later version.
 ;
-;-- This  program  is distributed in the hope that it will be  useful,	but
-;   WITHOUT   ANY   WARRANTY;  without	even  the   implied   warranty	 of
-;   MERCHANTABILITY  or	 FITNESS  FOR A PARTICULAR  PURPOSE.  See  the	GNU
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
 ;   General Public License for more details.
 ;
 ;   You should have received a copy of the GNU General Public License along
-;   with this program.	If not, see <http://www.gnu.org/licenses/>.
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;** 20 Jun 92 -	Rewrote	 the original program to use call by value  instead
-;		of call by referance - MT
+;		of call by reference - MT
 ;
 ;** 29 Jul 92 - Added checks for <CTRL-Y> and <CTRL-C> - MT
 ;
 ;** 30 Jul 92 - Updated	 the command line parser to allow multiple  options
 ;		to be specified - MT
 ;
-;**  4 Aug 92 - Leading speces are stripped from the command line - MT
+;**  4 Aug 92 - Leading spaces are stripped from the command line - MT
 ;
-;**  6 Aug 92 - Error handler incoporated - MT
+;**  6 Aug 92 - Error handler incorporated - MT
 ;
-;**  9 Aug 92 - Modified to loop continously if an error occours - MT
+;**  9 Aug 92 - Modified to loop continuously if an error occurs - MT
 ;
 ;** 10 Aug 92 - Now gives the user the option of using <SPACE> to advance a
 ;		line at a time or <RETURN> to advance by one page - MT
