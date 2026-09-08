@@ -1,0 +1,49 @@
+		TITLE	PRG - 27 May 87 - MEJT
+		SUBTTL	Test program...
+;
+		INCLUDE SYMBOLS
+		USING	PUTS,GETC, PUTC
+		USING	INITF, OPENF, CLOSEF, READF, WRITEF, BDOS
+;
+;-- A minimal program showing how to use the program macro and symbols.
+;
+;-- This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+;   20 Jun 92 - 3.0   - Rewritten  to use call by value instead of call  by
+;                       referance - MT
+;
+;
+Use_Parser	DEFL	True
+;
+Newline:	DEFB	02,00,Asc$CR,Asc$LF
+Input_File:	DEFB	16,00,'		       '
+;
+PRG:		PROGRAM Output
+Repeat:		LD	HL,Command
+		CALL	GETC##
+		JR	NZ,Done
+		LD	A,L
+		CP	Asc$EOF
+		JR	Z,Done
+		EX	DE,HL
+		LD	HL,Output
+		CALL	PUTC##
+		JR	Repeat
+;
+Done:		LD	HL,Output
+		LD	DE,Newline
+		CALL	PUTS##
+		RET
+;
+		END	PRG
