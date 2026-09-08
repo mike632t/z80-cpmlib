@@ -1,64 +1,70 @@
-		TITLE	CAT <ufn> /N /C /P - 27 May 87 - MT
-		SUBTTL	'Display to contents of a file'
+		TITLE   CAT <ufn> /N /C /P - 27 May 87 - MT
+		SUBTTL  'Display to contents of a file'
 ;
 		INCLUDE SYMBOLS
 		VERSION 'CAT 4.2 - 12 Jun 23'
 ;
-		USING	GETS, PUTS, GETC, PUTC, PUTI
-		USING	INITF, OPENF, CLOSEF, READF, WRITEF, BDOS
+		USING   GETS, PUTS, GETC, PUTC, PUTI
+		USING   INITF, OPENF, CLOSEF, READF, WRITEF, BDOS
 ;
 ;-- Allows  the user to display one or more ASCII files on the console, the
-;   display will pause after displaying the first full screen to allow	the
-;   information	 to  be read.  The operator can then use either <SPACE>	 to
+;   display will pause after displaying the first full screen to allow  the
+;   information  to  be read.  The operator can then use either <SPACE>  to
 ;   advance  the display to the next line or <RETURN> to display  the  next
 ;   sixteen lines.
 ;
-;   The	 operator may interupt the program by pressing <CTRL-C> or <CTRL-Y>
+;   The  operator may interupt the program by pressing <CTRL-C> or <CTRL-Y>
 ;   to completly quit, or <CTRL -Z> to skip to the next file.
 ;
 ;   This program is free software: you can redistribute it and/or modify it
-;   under  the terms of the GNU General Public License as published by	the
+;   under  the terms of the GNU General Public License as published by  the
 ;   Free Software Foundation, either version 3 of the License, or (at  your
 ;   option) any later version.
 ;
-;-- This  program  is distributed in the hope that it will be  useful,	but
-;   WITHOUT   ANY   WARRANTY;  without	even  the   implied   warranty	 of
-;   MERCHANTABILITY  or	 FITNESS  FOR A PARTICULAR  PURPOSE.  See  the	GNU
+;-- This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
 ;   General Public License for more details.
 ;
 ;   You should have received a copy of the GNU General Public License along
-;   with this program.	If not, see <http://www.gnu.org/licenses/>.
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;
-;   20 Jun 92 - 3.0   - Rewritten  to use call by value instead of call	 by
+;   20 Jun 92 - 3.0   - Rewritten  to use call by value instead of call  by
 ;			referance - MT
-;   29 Jul 92 -	      - Added checks for <CTRL-Y> and <CTRL-C> - MT
-;   30 Jul 92 - 3.1   - Updated	 the command line parser to allow  multiple
+;   29 Jul 92 -       - Added checks for <CTRL-Y> and <CTRL-C> - MT
+;   30 Jul 92 - 3.1   - Updated  the command line parser to allow  multiple
 ;			options to be specified - MT
-;    4 Aug 92 -	      - Leading spaces stripped from the command line - MT
-;    6 Aug 92 -	      - Error handler incoporated - MT
-;    9 Aug 92 -	      - Restart if an error occours - MT
-;   10 Aug 92 -	      - Allows the use of <SPACE> to advance by one line or
+;    4 Aug 92 -       - Leading spaces stripped from the command line - MT
+;    6 Aug 92 -       - Error handler incoporated - MT
+;    9 Aug 92 -       - Restart if an error occours - MT
+;   10 Aug 92 -       - Allows the use of <SPACE> to advance by one line or
 ;			<RETURN> to advance by one page - MT
 ;   17 Aug 92 - 3.2   - Added extra code to allow more than one filename to
 ;			be specified on the command line - MT
-;   18 Aug 92 -	      - Tidied up the display of multiple files by printing
+;   18 Aug 92 -       - Tidied up the display of multiple files by printing
 ;			a CR/LF at the start of every file - MT
 ;    9 Nov 92 - 3.3   - Modified to use new program header - MT
 ;   17 Nov 92 - 3.4   - Changed error handling mechanism - MT
 ;   23 Nov 92 - 3.5   - Do not pause after the last file is displayed - MT
-;   23 Nov 92 -	      - Check for <CTRL-Z> and skips to the next file - MT
+;   23 Nov 92 -       - Check for <CTRL-Z> and skips to the next file - MT
 ;   23 Jan 21 - 4.0   - Updated to use latest symbols which include updated
-;			macros	with the ability to parse  comma  delimited
+;			macros  with the ability to parse  comma  delimited
 ;			arguments - MT
-;   30 Jan 21 -	      - Tidied	up  exit code (EOF falls through to  break,
+;   30 Jan 21 -       - Tidied  up  exit code (EOF falls through to  break,
 ;			which falls through to close file) - MT
-;    6 Feb 21	4.1   - Fixed another old bug in the code that added a null
+;    6 Feb 21   4.1   - Fixed another old bug in the code that added a null
 ;			to the filename to terminate the string - MT
-;   11 Jun 23	4.2   - Updated verson numbers - MT
-;		      - Now checks for the line number flag correctly - MT
+;   11 Jun 23   4.2   - Updated verson numbers - MT
+;                     - Now checks for the line number flag and prints line
+;			numbers on each line if required - MT
+;   15 Jun 23         - Filename display now optional (use /F to enable the
+;			display of the filename). This decreases the number
+;			of lines shown on the first page by one - MT
 ;
-;
-;** To Do:	Expand linefeeds if not preceeded by a carriadge return.
+;** To Do:            - Don't display non-ascii chaacters?
+;                     - Translate formfeeds to blank lines (need to come up
+;			with a way of working out the page length...?)
+;                     - Sort out flags
 ;
 ;-- Set up constants...
 ;
@@ -80,7 +86,7 @@ Newline:	DEFB	02,00,Asc$LF,Asc$CR
 ;
 ;-- Input filename.
 ;
-Filename:	DEFB	16,00,'		       '
+Filename:	DEFB	16,00,'                '
 ;
 ;-- Define this routine as a program with three files.
 ;
@@ -95,8 +101,8 @@ CAT::		PROGRAM Input, Output, File
 		LD	(Number_Flag),A		; Clear the number flag.
 ;
 ;-- Take advantage of the fact that the output formatting flags are  stored
-;   immediatly	preceeding the address of the PUTI routine to modify one of
-;   them.
+;   immediatly  preceeding the address of the PUTI routine to modify one of
+;   them to display leading zeros.
 ;
 		CPL				; Complement A.
 		LD	(PUTI## -1),A		; Set flags for leading zeroes.
@@ -155,14 +161,16 @@ Parse_Cont:	LD	HL,Command		; Get the next character from the command line.
 Parse_Qualifier:LD	HL,Command
 		CALL	GETC##
 		LD	A,L
-		CP	'N'			; Check for all the vaild posibilities...
+		CP	'N'			; Check for all the valid possibilities...
 		JR	Z,Numbering_on
+		CP	'F'
+		JR	Z,Name_off
 		CP	'C'
 		JR	Z,Paging_Off
 		CP	'P'
 		JR	Z,Paging_Off + 1	; Treat any non zero value as TRUE  paging
 ;
-Invalid_Command:LD	A,ERR$Bad_Command	; If the qualifier isn't vaild fall through to the error handler.
+Invalid_Command:LD	A,ERR$Bad_Command	; If the qualifier isn't valid fall through to the error handler.
 		OR	A
 		RET
 Invalid_File:	LD	A,ERR$Bad_File
@@ -175,7 +183,13 @@ Paging_Off:	XOR	A			; Clear accumulator to set flag FALSE.
 		LD	(Page_Flag),A		; Jump here with any non zero value to set flag TRUE.
 		JR	Parse_Cont
 ;
-;-- Set the number_flag TRUE to turn line numbering on or FALSE to turn it off.
+;-- Set the filename_flag TRUE to turn filename on or FALSE to turn it off.
+;
+Name_Off:	XOR	A			; Clear accumulator to set flag FALSE.
+		LD	(Name_Flag),A	; Jump here with any non zero value to set flag TRUE.
+		JR	Parse_Cont
+;
+;-- Set the number_flag TRUE to turn line numbering on.
 ;
 Numbering_On:	LD	(Number_Flag),A		; Jump here with any non zero value to set flag TRUE.
 		JR	Parse_Cont
@@ -198,6 +212,8 @@ Parse_Done:	DEC	B			; at the end before displaying the next file.
 		LD	HL,Output
 		LD	DE,Newline
 		CALL	PUTS##
+		LD	HL, Counter             ; Decrement the number of lines available.
+		DEC	(HL)
 ;
 ;-- Attempt to open the input file.
 ;
@@ -234,17 +250,16 @@ Read_Loop:	LD	HL,File			; Set up pointer to input file again.
 ;
 ;-- Check to see if we should pause between pages.
 ;
-Pause:		LD	A,(Page_Flag)		; Only pause if the paging flag is set.
+Pause:		LD	A,(Page_Flag)           ; Only pause if the paging flag is set.
 		OR	A
-		JR	Z,Type_Char		
-		LD	A,(Counter)		; Check the number of lines remaining and
-		DEC	A			; decrement the number of lines remaining.
-		LD	(Counter),A
+		JR	Z,Type_Char
+		LD	HL,Counter		; Check the number of lines remaining and
+		DEC	(HL)			; decrement the number of lines remaining.
 		JR	NZ,Type_Char		; Not yet end of page, carry on with next line.
 ;
 ;-- If we are at the bottom of a page pause and wait for the user to  press
 ;   either <RETURN> or <SPACE> before continuing, <SPACE> will display only
-;   the	 next line to be printed, and <RETURN> will cause the next 16 lines
+;   the  next line to be printed, and <RETURN> will cause the next 16 lines
 ;   printed before pausing again.
 ;
 
@@ -284,7 +299,7 @@ Abort:		LD	HL,Command		; Strip remaining characters from the command line.
 		LD	A,L
 		CP	Asc$EOF
 		JR	NZ,Abort
-		JR	_Close			; Close input file
+		JR	Break			; Close input file
 ;
 ;-- EOF found, close files and return to CP/M.
 ;
@@ -300,7 +315,7 @@ Break:		LD	HL,Output		; Print newline.
 ;
 ;-- Close the input file.
 ;
-_Close:		LD	HL,File			; Close input file
+Close:		LD	HL,File			; Close input file
 		CALL	CLOSEF##
 Exit:		RET
 ;
