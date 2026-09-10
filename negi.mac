@@ -25,8 +25,7 @@
 ;
 ;   negi (integer);
 ;
-;   Returns  the  negative value of the argument, uses  common  subroutines
-;   from a disassembly of the ZX80 ROM.
+;   Returns the negative value of the 16 bit integer in HL.
 ;
 ;   Checks for overflow (-32768) and returns success/fail in A.
 ;
@@ -37,7 +36,7 @@ NEGI::		FUNCTION		; Return value in HL.
 		EX	HL,DE
 		SBC	HL,DE           ; Subtract HL from zero.
 		RET	PO              ; No overflow, return zero.
-		CPL			; Error flag.
+		CPL			; Set status bits.
 		RET
 ;
 		END

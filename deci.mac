@@ -25,15 +25,15 @@
 ;
 ;   deci (integer);
 ;
-;   Decrements a  16-bit integer..
+;   Decrements the 16-bit integer in HL, and returns the status in A.
 ;
 ;
 DECI::		FUNCTION		; Return value in HL.
 		XOR	A		; Clear carry, needed for subtract.
 		LD	DE,1
-		SBC	HL,DE		; Subtract HL from zero.
+		SBC	HL,DE		; Subtract 1.
 		RET	PO		; No overflow, return zero.
-		CPL			; Error flag.
+		CPL			; Set status bits.
 		RET
 ;
 		END
