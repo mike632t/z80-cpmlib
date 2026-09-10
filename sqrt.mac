@@ -2,10 +2,10 @@
 		SUBTTL	'Display integer square roots'
 ;
 		INCLUDE SYMBOLS
-		VERSION	'SQRT 3.1 - 27 Dec 20'
+		VERSION	'SQRT 2.0 - 27 Dec 20'
 ;
 		USING	SQRTI
-		USING	PUTS, PUTC, PUTI,
+		USING	PUTC, PUTI,
 		USING	INITF, OPENF, CLOSEF, WRITEF, BDOS
 ;
 ;-- Displays a table of 360 random numbers to the VDU and outputs them to a
@@ -25,13 +25,13 @@
 ;   You should have received a copy of the GNU General Public License along
 ;   with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;
-;** 25 Dec 20         - Initial version - MT
+;** 25 Dec 20	1.0   -	Initial version - MT
 ;
-;** 25 Dec 20         - Removed text messages (just prints values) - MT
+;** 25 Dec 20	      -	Removed text messages (just prints values) - MT
 ;
-;** 08 Sep 26         - Reformatted table - MT
+;** 08 Sep 26	2.0   -	Reformatted table - MT
 ;
-SQRT::		PROGRAM  Output
+SQRT::		PROGRAM	Output
 		LD	A, TRUE	; Set flag in PUTI to Display leading zeros.
 		LD	(PUTI## -1), A
 ;
@@ -61,7 +61,7 @@ Column:		POP	HL
                 LD	DE,Asc$TAB
                 CALL	PUTC##
                 CALL	PUTC##
-_Skip:		DEC     B
+		DEC     B
                 JR      NZ,Column
                 LD	DE,Asc$CR	; Print CR/LF.
                 CALL	PUTC##
