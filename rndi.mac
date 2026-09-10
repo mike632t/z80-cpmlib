@@ -2,7 +2,7 @@
 		SUBTTL	'Psudo random number generator'
 ;
 		INCLUDE	SYMBOLS
-		DEFB	'%%RNDI 3.1 - 18 Aug 91%%'
+		DEFB	'%%RNDI 3.1 - 25 Dec 20%%'
 ;
 ;-- Function to generate 16-bit psudo random numbers.
 ;
@@ -19,12 +19,14 @@
 ;   You should have received a copy of the GNU General Public License along
 ;   with this program.	If not, see <http://www.gnu.org/licenses/>.
 ;
-;   27 May 87	3.1   - Initial version - MT
-;   18 Aug 91	      - Modified  to use call by value rather than call	 by
+;** 27 May 87	1.0   -	Initial version - MT
+;
+;** 18 Aug 91	2.0   -	Modified  to use call by value rather than call	 by
 ;			reference - MT
-;   25 Dec 20	4.0   - Tidied	up  the	 code  to use  the  current  symbol
+;
+;** 25 Dec 20	3.0   -	Tidied	up  the	 code  to use  the  current  symbol
 ;			definitions and updated the formatting - MT
-;		4.1   - Replaced the existing psudo random number generator
+;		3.1   -	Replaced the existing psudo random number generator
 ;			with a more modern one that gives linger cycles and
 ;			a more even distribution. 
 ;
@@ -58,6 +60,7 @@ RNDI::		FUNCTION		; Return value in HL.
 		LD	L,A
 		XOR	H
 		LD	H,A
+		XOR	A		; Clear status.
 		RET
 ;
 		END
