@@ -1,11 +1,11 @@
 		TITLE	RANDOM - 20 Jun 92 - MT
-		SUBTTL	'Lists random numbers'
+		SUBTTL	'Display a list of random numbers'
 ;
 		INCLUDE SYMBOLS
-		VERSION 'RANDOM 3.7 - 24 Jan 21'
+		VERSION 'RANDOM 3.3 - 24 Jan 21'
 ;		      
 		USING	RNDI
-		USING	PUTS, PUTC, PUTI,
+		USING	PUTC, PUTI,
 		USING	INITF, OPENF, CLOSEF, WRITEF, BDOS
 ;
 ;-- Generates 500,000 random numbers.
@@ -23,25 +23,22 @@
 ;   You should have received a copy of the GNU General Public License along
 ;   with this program.	If not, see <http://www.gnu.org/licenses/>.
 ;
-;** 20 Jun 92 -	Initial version - MT
+;** 20 Jun 92	1.0   - Initial version - MT
 ;
-;**  6 Jun 87 -	Order of parameters reversed - MT
+;**  6 Jun 87         -	Order of parameters reversed - MT
 ;
-;** 19 Oct 89 -	Prints a table of values - MT
+;** 19 Oct 89         -	Prints a table of values - MT
 ;
-;** 25 Dec 20 -	Changed	 code to pass parameters to rndi() by value and not
-;		by reference - MT
+;** 25 Dec 20	2.0   -	Changed	 code to pass parameters to rndi() by value
+;			and not by reference - MT
 ;
-;** 25 Dec 20 -	Updated the formatting and changed the filenames to use the
-;		current symbol definitions - MT
+;** 25 Dec 20	3.0   -	Updated the formatting and changed the filenames to 
+;			use the current symbol definitions - MT
 ;
-;** 25 Dec 20 -	Removed text messages - MT
+;** 25 Dec 20         -	Removed text messages - MT
 ;
-;** 24 Jan 21 -	Does not print a CR/LF after the last line - MT
-;
-;** 08 Sep 26 - Sets output options correctly - MT
-;		Restored CR/LF after the last line - MT
-;		Replaced spaces with tabs - MT
+;** 08 Sep 26   3.3   -	Sets output options correctly - MT
+;			Replaced spaces with tabs - MT
 ;
 Seed:		DEFW	65537			; Prime number seed.
 ;
@@ -85,6 +82,5 @@ Done:		POP	DE			; Restore the stack and exit.
 		LD	DE,Asc$LF
 		CALL	PUTC##
 		RET
-;
 ;
 		END	RANDOM
