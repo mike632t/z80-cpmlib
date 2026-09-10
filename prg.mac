@@ -21,21 +21,21 @@
 ;   with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;   20 Jun 92 - 3.0   - Rewritten  to use call by value instead of call  by
-;                       referance - MT
+;                       reference - MT
 ;
 ;
 Use_Parser	DEFL	True
 ;
 Newline:	DEFB	02,00,Asc$CR,Asc$LF
-Input_File:	DEFB	16,00,'		       '
+Count:		DEFB	ERR$Success		; Static counter
 ;
 PRG:		PROGRAM Output
 Repeat:		LD	HL,Command
 		CALL	GETC##
 		JR	NZ,Done
-		LD	A,L
-		CP	Asc$EOF
-		JR	Z,Done
+;		LD	A,L
+;		CP	Asc$EOF
+;		JR	Z,Done
 		EX	DE,HL
 		LD	HL,Output
 		CALL	PUTC##
@@ -43,7 +43,10 @@ Repeat:		LD	HL,Command
 ;
 Done:		LD	HL,Output
 		LD	DE,Newline
-		CALL	PUTS##
+;;		CALL	PUTS##
+		LD	A,(Count)
+		INC	A
+		LD	(Count),A
 		RET
 ;
 		END	PRG
