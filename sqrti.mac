@@ -2,7 +2,7 @@
                 SUBTTL  'Integer square root'
 ;
                 INCLUDE SYMBOLS
-                VERSION 'SQRTI 4.0 - 25 Dec 20'
+                VERSION 'SQRTI 1.0 - 25 Dec 20'
 ;
 ;-- Function to find 16-bit integer square roots.
 ;
@@ -20,6 +20,8 @@
 ;   with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;
 ;   http://www.retroprogramming.com/2017/07/
+;
+;** 25 Dec 20	1.0   - Initial version - MT
 ;
 ;-- To Do             - Return an error if n is negative...
 ;
