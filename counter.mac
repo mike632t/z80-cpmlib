@@ -22,7 +22,11 @@
 ;   You should have received a copy of the GNU General Public License along
 ;   with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;
-;** 08 Sep 26 -	Initial version - MT
+;** 08 Sep 26	1.0   -	Initial version - MT
+;
+;** To Do:            - Use  built in error handler for overflow  (requires 
+;			changes to the PROGRAM macro and program to load an
+;			error code and exit via the global error handler).
 ;
 ;
 Number:		DEFW    -32700           	; Initial value.
@@ -32,7 +36,7 @@ Count:          DEFW    12			; Number of lines!
 Newline:        DEFB    02,00,Asc$LF,Asc$CR
 Overflow:       DEFB    11,00,Asc$LF,Asc$CR,'?Overflow'
 ;
-COUNTER:        PROGRAM  Output
+COUNTER:        PROGRAM	Output
 		LD      HL,Output
 		LD      DE,(Number)		; Get value in DE..
 Line:           LD      B,10            	; Number of columns.
@@ -44,7 +48,7 @@ Column:         CALL    PUTI##			; Print the current value.
 		EX      DE,HL
 		CALL    DECI##          	; Returns new value number in HL.
 		EX      DE,HL
-		;JR	NZ,Error
+		JR	NZ,Error
 		DEC     B
 		JR      NZ,Column
 		PUSH	HL			; Save file handle
@@ -61,9 +65,9 @@ Column:         CALL    PUTI##			; Print the current value.
 		POP	DE
 		JR	Line			; Print next line
 ;
-Error:		LD      DE, Overflow      	; Print error message.
+Error:		LD      DE,Overflow      	; Print error message.
 		CALL    PUTS##	
-Done:		LD      DE, Newline      	; Print CR/LF.
+Done:		LD      DE,Newline      	; Print CR/LF.
 		CALL    PUTS##
 		RET
 ;
