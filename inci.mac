@@ -1,0 +1,39 @@
+		TITLE	inci (integer):integer - 06 Jun 87 - MT
+		SUBTTL	'Integer increment'
+;
+		INCLUDE	SYMBOLS
+		DEFB	'%%INCI 2.0 - 18 Aug 91%%'
+;
+;-- Function to increment a 16-bit number.
+;
+;   This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by	the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE.  See  the   GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.	If not, see <http://www.gnu.org/licenses/>.
+;
+;   06 Jun 87	1.0   - Initial version - MT
+;   18 Aug 91	2.0   - Modified  to use call by value rather than call  by
+;			reference - MT
+;
+;   inci (integer);
+;
+;   Increments a 16-bit integer in HL, and returns the status in A.
+;
+;
+INCI::		FUNCTION		; Return value in HL.
+		XOR	A		; Clear carry, needed for subtract.
+		LD	DE,1
+		ADC	HL,DE		; Add 1.
+		RET	PO		; No overflow, return zero.
+		CPL			; Set status bits.
+		RET
+;
+		END

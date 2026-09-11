@@ -1,0 +1,47 @@
+		TITLE	absi (integer):integer - 12 Sep 87 - MT
+		SUBTTL	'Absolute value'
+;
+		INCLUDE	SYMBOLS
+		DEFB	'%%ABSI 2.0 - 10 Sep 26%%'
+;
+;-- Function to return absolute value of a 16-bit integer.
+;
+;-- This program is free software: you can redistribute it and/or modify it
+;   under  the terms of the GNU General Public License as published by  the
+;   Free Software Foundation, either version 3 of the License, or (at  your
+;   option) any later version.
+;
+;   This  program  is distributed in the hope that it will be  useful,  but
+;   WITHOUT   ANY   WARRANTY;  without  even  the   implied   warranty   of
+;   MERCHANTABILITY  or  FITNESS  FOR A PARTICULAR  PURPOSE.  See  the  GNU
+;   General Public License for more details.
+;
+;   You should have received a copy of the GNU General Public License along
+;   with this program.  If not, see <http://www.gnu.org/licenses/>.
+;
+;   12 Sep 87	1.0   - Initial version - MT
+;   10 Sep 26	2.0   - Modified  to use call by value rather than call  by
+;                       reference - MT
+;
+;   absi (integer);
+;
+;   Returns  the  absolute value of the argument.
+;
+;   Returns success/fail in A.
+;
+ABSI::		FUNCTION		; Return value in HL.
+		XOR	A		; Clear carry, zero needed for subtract.
+		BIT     7,H             ; If HL is positive then 
+		RET     Z               ; then we don't need to do anything.
+;
+;-- Following code is the same as NEGI
+;
+		LD	D,A		; Clear DE.
+		LD	E,A
+		EX	DE,HL
+		SBC	HL,DE           ; Subtract HL from DE.
+		RET	PO              ; No overflow, return zero.
+		CPL			; Set status bits.
+		RET
+;
+		END
