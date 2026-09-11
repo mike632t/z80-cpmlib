@@ -76,6 +76,7 @@
 ;**  8 Sep 26 - Corrected spelling - MT
 ;
 ;** 11 Sep 26 -	Print a newline on exit - MT 
+;             - Add error code for overflow - MT
 ;
 ;-- ASCII control characters.
 ;
@@ -165,7 +166,10 @@ ERR$Write_Only	EQU	015			; Device is write only.
 ERR$Read_Only	EQU	016			; Device is read only.
 ERR$No_Memory	EQU	017			; Out of memory !
 ERR$Bad_Command EQU	018			; Invalid command.
-ERR$Undefined	EQU	019			; Undefined error - just in case any of the others doesn't fit.
+
+ERR$Overflow	EQU	019			; Overflow.
+
+ERR$Undefined	EQU	020			; Undefined error - just in case any of the others doesn't fit.
 ;
 ;-- Set up logical constants.
 ;
@@ -557,6 +561,9 @@ $Err_Messages:	DEFB	19,'?Invalid filename','$'
 		DEFB	20,'?File is read only','$'
 		DEFB	17,'?Out of memory!','$'
 		DEFB	16,'?Command error','$'
+;		
+		DEFB	11,'?Overflow$'
+;		
 		DEFB	00,'?Undefined error!',Asc$BEL,'$'
 ;
 $Main:
