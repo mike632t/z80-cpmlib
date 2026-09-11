@@ -24,17 +24,18 @@
 ;
 ;** 08 Sep 26	1.0   -	Initial version - MT
 ;
-;** To Do:            - Use  built in error handler for overflow  (requires 
-;			changes to the PROGRAM macro and program to load an
-;			error code and exit via the global error handler).
+;** 11 Sep 26   1.1   - Demonstrates  how  pass a status code to the  error
+;			handler built in to the program macro - MT 
+;
+;** To Do:            - 
 ;
 ;
-Number:		DEFW    -32700           	; Initial value.
+Number:		DEFW    -32722           	; Initial value.
 ;
 Count:          DEFW    12			; Number of lines!
 ;
 Newline:        DEFB    02,00,Asc$LF,Asc$CR
-Overflow:       DEFB    11,00,Asc$LF,Asc$CR,'?Overflow'
+ErrMsg:		DEFB    11,00,Asc$LF,Asc$CR,'?Overflow'
 ;
 COUNTER:        PROGRAM	Output
 		LD      HL,Output
@@ -48,7 +49,7 @@ Column:         CALL    PUTI##			; Print the current value.
 		EX      DE,HL
 		CALL    DECI##          	; Returns new value number in HL.
 		EX      DE,HL
-		JR	NZ,Error
+		JR	NZ,Overflow
 		DEC     B
 		JR      NZ,Column
 		PUSH	HL			; Save file handle
@@ -65,8 +66,9 @@ Column:         CALL    PUTI##			; Print the current value.
 		POP	DE
 		JR	Line			; Print next line
 ;
-Error:		LD      DE,Overflow      	; Print error message.
-		CALL    PUTS##	
+Overflow:	CALL	Done			; Print a newline.
+		LD	A,ERR$Overflow		; Load status code.
+		RET				; Error printed automatically on exit.
 Done:		LD      DE,Newline      	; Print CR/LF.
 		CALL    PUTS##
 		RET
