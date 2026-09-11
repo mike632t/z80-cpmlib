@@ -75,8 +75,7 @@
 ;
 ;**  8 Sep 26 - Corrected spelling - MT
 ;
-;**  9 Sep 26 -	Added code to print a newline on exit but left it commented
-;		out - MT 
+;** 11 Sep 26 -	Print a newline on exit - MT 
 ;
 ;-- ASCII control characters.
 ;
@@ -494,12 +493,15 @@ $Done:		XOR	A			;; Clear the accumulator
 ;;
 ;;- That's all folks - leave things the way they were before we started...
 ;;
-;;		LD	E,Asc$CR
-;;		LD      C,BIOS$CON_Output
-;;		CALL    BIOS##
-;;		LD	E,Asc$LF
-;;		LD      C,BIOS$CON_Output
-;;		CALL    BIOS##
+;;  Printing a newline ensures that the prompt is shown at the start of the
+;;  next line.
+;;
+		LD	E,Asc$CR		;; Print a newline.
+		LD      C,BIOS$CON_Output
+		CALL    BIOS##
+		LD	E,Asc$LF
+		LD      C,BIOS$CON_Output
+		CALL    BIOS##
 		POP	AF
 		POP	BC
 		POP	DE
