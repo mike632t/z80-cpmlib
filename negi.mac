@@ -33,7 +33,7 @@ NEGI::		FUNCTION		; Return value in HL.
 		XOR	A		; Clear carry, needed for subtract.
 		LD	D,A
 		LD	E,A
-		EX	HL,DE
+		EX	DE,HL
 		SBC	HL,DE           ; Subtract HL from zero.
 		RET	PO              ; No overflow, return zero.
 		CPL			; Set status bits.
